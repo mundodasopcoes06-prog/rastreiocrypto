@@ -1,0 +1,384 @@
+/* ============================================================
+   Sistema visual do Rastreio Cripto
+
+   Ideia: uma pagina de perícia. Papel claro, tinta escura,
+   e cor usada só onde ela significa alguma coisa —
+   verde é entrada, vermelho é saída, âmbar é atenção.
+   Nada de cor decorativa.
+   ============================================================ */
+
+:root {
+  --papel:      #e9edee;
+  --superficie: #ffffff;
+  --tinta:      #16232b;
+  --tinta-fraca:#5c6b72;
+  --linha:      #cbd5d8;
+
+  --entrada:    #0b6e4f;
+  --entrada-bg: #e3f0ea;
+  --saida:      #a32a22;
+  --saida-bg:   #f6e5e3;
+  --atencao:    #8a5a00;
+  --atencao-bg: #f7eeda;
+  --estrutura:  #2f4858;
+
+  --fonte: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono:  'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  --largura: 72rem;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--fonte);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--estrutura); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--estrutura);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+.envoltorio {
+  max-width: var(--largura);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ---------------- cabecalho ---------------- */
+.cabecalho {
+  border-bottom: 1px solid var(--linha);
+  background: var(--superficie);
+}
+.cabecalho-interno {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  max-width: var(--largura);
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.marca {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--tinta);
+}
+.marca span { color: var(--tinta-fraca); font-weight: 400; margin-left: .6rem; font-size: .9rem; }
+.idioma {
+  font-family: var(--mono);
+  font-size: .8rem;
+  border: 1px solid var(--linha);
+  padding: .3rem .7rem;
+  border-radius: 2px;
+  color: var(--tinta-fraca);
+  background: var(--papel);
+}
+
+/* ---------------- home ---------------- */
+.capa {
+  padding: 5rem 0 3.5rem;
+  max-width: 46rem;
+}
+.capa h1 {
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  margin: 0 0 .9rem;
+}
+.capa p.frase {
+  font-size: 1.15rem;
+  color: var(--tinta-fraca);
+  margin: 0 0 2.25rem;
+  max-width: 34rem;
+}
+
+.campo-busca { display: flex; gap: .6rem; flex-wrap: wrap; }
+.campo-busca input {
+  flex: 1 1 22rem;
+  font-family: var(--fonte);
+  font-size: 1.05rem;
+  padding: .95rem 1rem;
+  border: 1.5px solid var(--tinta);
+  border-radius: 2px;
+  background: var(--superficie);
+  color: var(--tinta);
+}
+.campo-busca input::placeholder { color: #9aa8ad; }
+.botao {
+  font-family: var(--fonte);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: .95rem 1.6rem;
+  border: 1.5px solid var(--tinta);
+  border-radius: 2px;
+  background: var(--tinta);
+  color: var(--papel);
+  cursor: pointer;
+}
+.botao:hover { background: var(--estrutura); border-color: var(--estrutura); }
+.botao:disabled { opacity: .55; cursor: default; }
+.botao-claro { background: var(--superficie); color: var(--tinta); }
+.botao-claro:hover { background: var(--papel); color: var(--tinta); }
+
+.ajuda { font-size: .9rem; color: var(--tinta-fraca); margin: .8rem 0 0; }
+
+/* ---------------- resultados da busca ---------------- */
+.resultados { margin: 2.5rem 0 4rem; }
+.resultados h2 { font-size: 1rem; font-weight: 600; margin: 0 0 .75rem; }
+.resultado {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .85rem 1rem;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-bottom: none;
+  color: var(--tinta);
+}
+.resultado:last-child { border-bottom: 1px solid var(--linha); }
+.resultado:hover { background: #f5f8f9; text-decoration: none; }
+.resultado .sigla { font-weight: 600; min-width: 5.5rem; }
+.resultado .nome { color: var(--tinta-fraca); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resultado .rede {
+  font-family: var(--mono);
+  font-size: .75rem;
+  padding: .15rem .5rem;
+  border: 1px solid var(--linha);
+  color: var(--tinta-fraca);
+}
+.resultado .liq { font-family: var(--mono); font-size: .85rem; color: var(--tinta-fraca); }
+
+/* ---------------- pagina do token ---------------- */
+.topo-token {
+  padding: 2.5rem 0 1.5rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.topo-token h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.3rem);
+  margin: 0;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.topo-token .contrato {
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: var(--tinta-fraca);
+  margin-top: .35rem;
+  word-break: break-all;
+}
+
+/* veredicto: o elemento principal da pagina */
+.veredicto {
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-left: 4px solid var(--estrutura);
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+.veredicto h2 {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--tinta-fraca);
+  margin: 0 0 .5rem;
+}
+.veredicto .frase-principal {
+  font-size: clamp(1.25rem, 2.6vw, 1.7rem);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.5rem;
+  font-weight: 500;
+}
+
+/* a balanca compra x venda */
+.balanca { margin-top: 1.25rem; }
+.balanca-barra {
+  display: flex;
+  height: 2.4rem;
+  border: 1px solid var(--linha);
+  overflow: hidden;
+}
+.balanca-lado {
+  display: flex;
+  align-items: center;
+  padding: 0 .7rem;
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: #fff;
+  white-space: nowrap;
+  min-width: 0;
+}
+.balanca-compra { background: var(--entrada); }
+.balanca-venda  { background: var(--saida); justify-content: flex-end; }
+.balanca-vazia  { background: var(--papel); flex: 1; }
+.balanca-legenda {
+  display: flex;
+  justify-content: space-between;
+  font-size: .85rem;
+  color: var(--tinta-fraca);
+  margin-top: .5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* abas de periodo */
+.abas { display: flex; gap: 0; margin-bottom: 1rem; flex-wrap: wrap; }
+.aba {
+  font-family: var(--fonte);
+  font-size: .92rem;
+  padding: .5rem 1.1rem;
+  border: 1px solid var(--linha);
+  border-right: none;
+  background: var(--superficie);
+  color: var(--tinta-fraca);
+  cursor: pointer;
+}
+.aba:last-child { border-right: 1px solid var(--linha); }
+.aba[aria-selected='true'] {
+  background: var(--tinta);
+  color: var(--papel);
+  border-color: var(--tinta);
+  font-weight: 500;
+}
+
+/* grafico de barras por dia */
+.grafico {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 7rem;
+  border-bottom: 1px solid var(--linha);
+  margin: 1.25rem 0 .4rem;
+}
+.grafico-dia { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; min-width: 3px; }
+.grafico-compra { background: var(--entrada); }
+.grafico-venda  { background: var(--saida); }
+.grafico-legenda { display: flex; justify-content: space-between; font-family: var(--mono); font-size: .75rem; color: var(--tinta-fraca); }
+
+/* blocos gerais */
+.bloco {
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.bloco > h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 .3rem;
+  letter-spacing: -0.01em;
+}
+.bloco > p.sub { font-size: .9rem; color: var(--tinta-fraca); margin: 0 0 1.25rem; }
+
+/* alertas */
+.alerta {
+  border: 1px solid var(--linha);
+  border-left: 4px solid var(--tinta-fraca);
+  padding: 1rem 1.15rem;
+  margin-bottom: .75rem;
+  background: var(--papel);
+}
+.alerta.alto  { border-left-color: var(--saida);   background: var(--saida-bg); }
+.alerta.medio { border-left-color: var(--atencao); background: var(--atencao-bg); }
+.alerta.info  { border-left-color: var(--entrada); background: var(--entrada-bg); }
+.alerta h3 { margin: 0 0 .35rem; font-size: 1rem; font-weight: 600; }
+.alerta p  { margin: 0; font-size: .93rem; }
+
+/* selo de confianca */
+.selo {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: .7rem;
+  padding: .1rem .45rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.selo-confirmado { color: var(--entrada); }
+.selo-indicio    { color: var(--atencao); }
+
+/* tabela de movimentos */
+.rolagem { overflow-x: auto; }
+table.movimentos { width: 100%; border-collapse: collapse; font-size: .92rem; }
+table.movimentos th {
+  text-align: left;
+  font-weight: 600;
+  font-size: .82rem;
+  color: var(--tinta-fraca);
+  border-bottom: 1px solid var(--linha);
+  padding: .5rem .6rem;
+  white-space: nowrap;
+}
+table.movimentos td {
+  padding: .6rem;
+  border-bottom: 1px solid #edf1f2;
+  vertical-align: top;
+}
+table.movimentos tr:hover td { background: #f7fafb; }
+td.num, td.hora { font-family: var(--mono); font-size: .85rem; white-space: nowrap; }
+td.hora small { display: block; color: var(--tinta-fraca); font-size: .75rem; }
+.etiqueta-tipo { font-weight: 600; }
+.etiqueta-tipo.compra { color: var(--entrada); }
+.etiqueta-tipo.venda  { color: var(--saida); }
+.quem-nome { font-weight: 500; }
+.quem-end { font-family: var(--mono); font-size: .75rem; color: var(--tinta-fraca); display: block; }
+
+/* ficha e legenda */
+.ficha { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.1rem; }
+.ficha div span { display: block; font-size: .8rem; color: var(--tinta-fraca); }
+.ficha div strong { font-family: var(--mono); font-size: 1rem; font-weight: 500; word-break: break-all; }
+
+.legenda { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.25rem; }
+.legenda p { margin: .3rem 0 0; font-size: .9rem; color: var(--tinta-fraca); }
+
+.aviso {
+  font-size: .85rem;
+  color: var(--tinta-fraca);
+  border-top: 1px solid var(--linha);
+  padding: 1.25rem 0 3rem;
+  margin-top: 1rem;
+}
+
+.estado {
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--tinta-fraca);
+  margin-bottom: 1.5rem;
+}
+
+.rodape {
+  border-top: 1px solid var(--linha);
+  background: var(--superficie);
+  padding: 1.5rem 0;
+  font-size: .85rem;
+  color: var(--tinta-fraca);
+}
+
+@media (max-width: 640px) {
+  .capa { padding: 3rem 0 2rem; }
+  .veredicto { padding: 1.25rem; }
+  .bloco { padding: 1.15rem; }
+}
