@@ -1,4 +1,5 @@
 import './globals.css';
+import { VERIFICACOES } from '@/lib/verificacoes';
 
 export const metadata = {
   title: 'Rastreio Cripto',
@@ -15,6 +16,12 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
+        {VERIFICACOES.googleSearchConsole && (
+          <meta name="google-site-verification" content={VERIFICACOES.googleSearchConsole} />
+        )}
+        {VERIFICACOES.googleAdsense && (
+          <meta name="google-adsense-account" content={`ca-${VERIFICACOES.googleAdsense}`} />
+        )}
       </head>
       <body>{children}</body>
     </html>
