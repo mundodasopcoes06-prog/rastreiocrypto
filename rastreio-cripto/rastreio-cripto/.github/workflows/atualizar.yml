@@ -1,0 +1,31 @@
+# ============================================================
+# Rotina automatica: acorda de 15 em 15 minutos e manda o site
+# ler a blockchain de novo.
+#
+# Precisa de dois segredos no GitHub (Settings > Secrets > Actions):
+#   URL_DO_SITE  -> https://seusite.vercel.app
+#   CRON_SECRET  -> a mesma senha que voce pos na Vercel
+# ============================================================
+
+name: Atualizar dados da blockchain
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # a cada 15 minutos
+  workflow_dispatch:          # botao para rodar na mao quando quiser
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar a rota de atualizacao
+        run: |
+          codigo=$(curl -s -o resposta.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.URL_DO_SITE }}/api/atualizar")
+          echo "Resposta HTTP: $codigo"
+          cat resposta.json
+          if [ "$codigo" != "200" ]; then
+            echo "A atualizacao falhou."
+            exit 1
+          fi
