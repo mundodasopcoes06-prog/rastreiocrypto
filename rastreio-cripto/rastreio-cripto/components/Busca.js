@@ -56,6 +56,7 @@ export default function Busca({ locale }) {
                   key={`${r.chain}:${r.address}`}
                   href={`/${locale}/token/${r.chain}/${r.address}`}
                   className="resultado"
+                  prefetch={false}
                 >
                   <span className="sigla">{r.simbolo}</span>
                   <span className="nome">{r.nome}</span>
