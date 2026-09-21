@@ -2,12 +2,20 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { IDIOMAS, t } from '@/lib/dicionario';
 import { lerToken, registrarVisita } from '@/lib/coletor';
-import { balanco, porDia, gerarAlertas } from '@/lib/analise';
-import { formatarDinheiro, formatarNumero, encurtarEndereco, linkExplorador } from '@/lib/formato';
+import {
+  balanco, porDia, gerarAlertas, termometro, resumoProjeto, raioX,
+  analisarLiquidez, analisarDonos, idadeEmDias, fusoDoIdioma,
+} from '@/lib/analise';
+import { montarNarrativa } from '@/lib/narrativa';
+import { formatarDinheiro, formatarNumero, formatarDataHora, encurtarEndereco, linkExplorador } from '@/lib/formato';
 import Balanco from '@/components/Balanco';
 import Alertas from '@/components/Alertas';
 import LinhaDoTempo from '@/components/LinhaDoTempo';
 import Atualizador from '@/components/Atualizador';
+import CarteirasProjeto from '@/components/CarteirasProjeto';
+import RaioX from '@/components/RaioX';
+import Liquidez from '@/components/Liquidez';
+import Donos from '@/components/Donos';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +29,6 @@ export default async function PaginaToken({ params }) {
 
   const txt = t(locale);
 
-  // Marca a visita: e isso que coloca o token na fila da rotina automatica.
   await registrarVisita(chain, address);
 
   const dados = await lerToken(chain, address);
@@ -29,33 +36,37 @@ export default async function PaginaToken({ params }) {
   const movimentos = dados?.transferencias || [];
   const snapshots = dados?.snapshots || [];
   const carteirasProjeto = dados?.carteirasProjeto || new Set();
+  const motivosProjeto = dados?.motivosProjeto || new Map();
+  const conhecidos = dados?.conhecidos || new Map();
 
   const ultimoSnapshot = snapshots[0] || null;
 
+  // ---- Todos os calculos da pagina ----
   const periodos = {
     '24h': balanco(movimentos, 24),
     '7d': balanco(movimentos, 24 * 7),
     '30d': balanco(movimentos, 24 * 30),
   };
-
   const serieDiaria = porDia(movimentos, 30);
+  const projeto = resumoProjeto(movimentos, carteirasProjeto);
+  const raio = {
+    '24h': raioX(movimentos, 24, carteirasProjeto),
+    '7d': raioX(movimentos, 24 * 7, carteirasProjeto),
+    '30d': raioX(movimentos, 24 * 30, carteirasProjeto),
+  };
+  const liquidez = analisarLiquidez(snapshots);
+  const donos = analisarDonos(token, conhecidos, carteirasProjeto);
+  const idade = idadeEmDias(token);
 
-  const alertas = gerarAlertas({ token, transferencias: movimentos, snapshots, carteirasProjeto });
-
-  // A frase principal da pagina.
-  const b = periodos['24h'];
-  let frase;
-  if (b.movimentos === 0) {
-    frase = txt.semDados;
-  } else if (b.pctCompra > 58) {
-    frase = `${txt.pressaoCompra} — ${formatarDinheiro(b.compras, locale)} ${txt.saldoCompras.toLowerCase()} contra ${formatarDinheiro(b.vendas, locale)} ${txt.saldoVendas.toLowerCase()} nas últimas 24 horas.`;
-  } else if (b.pctVenda > 58) {
-    frase = `${txt.pressaoVenda} — ${formatarDinheiro(b.vendas, locale)} ${txt.saldoVendas.toLowerCase()} contra ${formatarDinheiro(b.compras, locale)} ${txt.saldoCompras.toLowerCase()} nas últimas 24 horas.`;
-  } else {
-    frase = `${txt.pressaoEquilibrio} — ${b.movimentos} ${locale === 'pt' ? 'movimentos nas últimas 24 horas' : 'movements in the last 24 hours'}.`;
-  }
+  const alertas = gerarAlertas({
+    token, transferencias: movimentos, carteirasProjeto, conhecidos,
+    liquidez, donos, fuso: fusoDoIdioma(locale),
+  });
+  const termo = termometro(alertas);
+  const { manchete, paragrafo } = montarNarrativa({ locale, periodos, projeto, raio7d: raio['7d'], liquidez });
 
   const nome = token.symbol || token.name || encurtarEndereco(address);
+  const nomesNivel = { baixo: txt.termometroBaixo, medio: txt.termometroMedio, alto: txt.termometroAlto };
 
   return (
     <div className="envoltorio">
@@ -67,6 +78,17 @@ export default async function PaginaToken({ params }) {
             <a href={linkExplorador(chain, 'address', address)} target="_blank" rel="noreferrer noopener">
               {address}
             </a>
+          </div>
+          <div className={`idade ${idade !== null && idade < 30 ? 'nova' : ''}`}>
+            {idade === null ? (
+              txt.idadeDesconhecida
+            ) : (
+              <>
+                {txt.idadeTitulo} <strong>{formatarDataHora(token.created_on_chain_at, locale).slice(0, 10)}</strong>{' '}
+                ({txt.idadeDias(idade)})
+                {idade < 30 && <span className="idade-selo">{txt.idadeNovo}</span>}
+              </>
+            )}
           </div>
         </div>
         <Link href={`/${locale}`} className="idioma">{txt.voltar}</Link>
@@ -86,14 +108,35 @@ export default async function PaginaToken({ params }) {
         <div className="estado">{txt.coletando}</div>
       ) : (
         <>
-          <section className="veredicto">
+          <section className={`veredicto nivel-${termo.nivel}`}>
+            <div className="termometro" aria-label={`${txt.termometroTitulo}: ${nomesNivel[termo.nivel]}`}>
+              <span className="termometro-rotulo">{txt.termometroTitulo}</span>
+              <div className="termometro-escala" aria-hidden="true">
+                {['baixo', 'medio', 'alto'].map((n) => (
+                  <span key={n} className={`seg seg-${n} ${termo.nivel === n ? 'ativo' : ''}`}>{nomesNivel[n]}</span>
+                ))}
+              </div>
+              <span className="termometro-resumo">
+                {txt.termometroResumo(termo.altos, termo.medios)} {txt.termometroAviso}
+              </span>
+            </div>
+
             <h2>{txt.veredictoTitulo}</h2>
-            <p className="frase-principal">{frase}</p>
+            <p className="frase-principal">{manchete}</p>
+            {paragrafo && <p className="narrativa">{paragrafo}</p>}
           </section>
+
+          <Alertas locale={locale} alertas={alertas} chain={chain} />
+
+          <CarteirasProjeto locale={locale} chain={chain} resumo={projeto} motivosProjeto={motivosProjeto} />
 
           <Balanco locale={locale} periodos={periodos} serieDiaria={serieDiaria} />
 
-          <Alertas locale={locale} alertas={alertas} />
+          <RaioX locale={locale} periodos={raio} />
+
+          <Liquidez locale={locale} liquidez={liquidez} />
+
+          <Donos locale={locale} chain={chain} donos={donos} />
 
           <section className="bloco">
             <h2>{txt.fichaTitulo}</h2>
@@ -137,7 +180,12 @@ export default async function PaginaToken({ params }) {
             </div>
           </section>
 
-          <LinhaDoTempo locale={locale} movimentos={movimentos.slice(0, 200)} simbolo={token.symbol} />
+          <LinhaDoTempo
+            locale={locale}
+            movimentos={movimentos.slice(0, 200)}
+            simbolo={token.symbol}
+            motivosProjeto={motivosProjeto}
+          />
         </>
       )}
 
