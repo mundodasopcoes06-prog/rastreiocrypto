@@ -1,6 +1,21 @@
 import { notFound } from 'next/navigation';
 import { IDIOMAS, t } from '@/lib/dicionario';
+import { SITE_URL } from '@/lib/site';
 import Busca from '@/components/Busca';
+import Anuncio from '@/components/Anuncio';
+
+export function generateMetadata({ params }) {
+  const { locale } = params;
+  const txt = t(locale);
+  return {
+    title: `${txt.siteNome} — ${txt.siteResumo}`,
+    description: txt.buscaAjuda,
+    alternates: {
+      canonical: `${SITE_URL}/${locale}`,
+      languages: { pt: `${SITE_URL}/pt`, en: `${SITE_URL}/en` },
+    },
+  };
+}
 
 export default function Home({ params }) {
   const { locale } = params;
@@ -29,6 +44,8 @@ export default function Home({ params }) {
         </div>
         <p className="ajuda" style={{ marginTop: '1.5rem' }}>{txt.avisoGeral}</p>
       </section>
+
+      <Anuncio locale={locale} />
     </div>
   );
 }
