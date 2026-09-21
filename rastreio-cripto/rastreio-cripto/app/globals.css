@@ -382,3 +382,148 @@ td.hora small { display: block; color: var(--tinta-fraca); font-size: .75rem; }
   .veredicto { padding: 1.25rem; }
   .bloco { padding: 1.15rem; }
 }
+
+/* ================================================================
+   MELHORIAS DE LEITURA (pacote 2)
+   ================================================================ */
+
+/* idade do token, logo abaixo do endereco */
+.idade { margin-top: .6rem; font-size: .92rem; color: var(--tinta-fraca); }
+.idade strong { color: var(--tinta); font-weight: 600; }
+.idade.nova strong { color: var(--atencao); }
+.idade-selo {
+  display: inline-block;
+  margin-left: .5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .08rem .5rem;
+  background: var(--atencao-bg);
+  color: var(--atencao);
+  border: 1px solid var(--atencao);
+  border-radius: 2px;
+}
+
+/* termometro: o elemento que resume a pagina */
+.veredicto.nivel-medio { border-left-color: var(--atencao); }
+.veredicto.nivel-alto  { border-left-color: var(--saida); }
+.termometro {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .5rem 1rem;
+  align-items: center;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--linha);
+}
+.termometro-rotulo { font-size: .95rem; font-weight: 600; }
+.termometro-escala { display: flex; max-width: 24rem; }
+.termometro-escala .seg {
+  flex: 1;
+  text-align: center;
+  font-size: .85rem;
+  padding: .45rem .5rem;
+  border: 1px solid var(--linha);
+  margin-left: -1px;
+  color: var(--tinta-fraca);
+  background: var(--papel);
+}
+.seg.ativo { color: #fff; font-weight: 600; border-color: transparent; }
+.seg-baixo.ativo { background: var(--entrada); }
+.seg-medio.ativo { background: var(--atencao); }
+.seg-alto.ativo  { background: var(--saida); }
+.termometro-resumo { grid-column: 1 / -1; font-size: .85rem; color: var(--tinta-fraca); }
+
+.veredicto .frase-principal { margin-bottom: .9rem; }
+.veredicto .narrativa { font-size: 1.02rem; line-height: 1.6; margin: 0; max-width: 62rem; }
+
+/* motivo do indicio */
+.alerta p.motivo {
+  margin-top: .6rem;
+  font-size: .85rem;
+  color: var(--tinta-fraca);
+}
+.alerta-endereco { margin-top: .4rem !important; font-family: var(--mono); font-size: .8rem !important; }
+.motivo-linha {
+  display: block;
+  font-size: .78rem;
+  color: var(--atencao);
+  margin: .15rem 0;
+  max-width: 22rem;
+  white-space: normal;
+}
+
+/* tabelas-resumo (projeto e raio-x) */
+.estado-curto {
+  background: var(--papel);
+  padding: 1rem 1.15rem;
+  margin: 0;
+  font-size: .93rem;
+}
+table.tabela-resumo { width: 100%; border-collapse: collapse; font-size: .92rem; }
+table.tabela-resumo th, table.tabela-resumo td {
+  padding: .6rem;
+  border-bottom: 1px solid #edf1f2;
+  text-align: right;
+  vertical-align: top;
+}
+table.tabela-resumo thead th { font-size: .82rem; color: var(--tinta-fraca); font-weight: 600; border-bottom-color: var(--linha); }
+table.tabela-resumo th[scope='row'], table.tabela-resumo thead th:first-child { text-align: left; font-weight: 500; }
+table.tabela-resumo td { font-family: var(--mono); font-size: .85rem; white-space: nowrap; }
+table.tabela-resumo small { color: var(--tinta-fraca); font-family: var(--fonte); font-size: .75rem; }
+table.tabela-resumo th small { display: block; font-weight: 400; margin-top: .15rem; }
+table.tabela-resumo .entrada { color: var(--entrada); }
+table.tabela-resumo .saida { color: var(--saida); }
+table.raio td { position: relative; min-width: 9rem; }
+.barrinha {
+  position: absolute;
+  right: .6rem;
+  bottom: .3rem;
+  height: 3px;
+  max-width: calc(100% - 1.2rem);
+}
+.barrinha.entrada { background: var(--entrada); }
+.barrinha.saida { background: var(--saida); }
+
+.detalhes { margin-top: 1rem; font-size: .9rem; }
+.detalhes summary { cursor: pointer; color: var(--estrutura); }
+.detalhes ul { margin: .6rem 0 0; padding-left: 1.1rem; color: var(--tinta-fraca); }
+.detalhes li { margin-bottom: .3rem; }
+.detalhes a { font-family: var(--mono); font-size: .82rem; }
+
+/* liquidez */
+.liq-frase { font-size: 1rem; font-weight: 500; margin: 0 0 1rem; }
+.liq-frase.brusca, .liq-frase.gradual { color: var(--saida); }
+.liq-frase.subiu { color: var(--entrada); }
+.liq-grafico {
+  display: block;
+  width: 100%;
+  height: 7rem;
+  border-bottom: 1px solid var(--linha);
+  margin-bottom: .4rem;
+}
+
+/* maiores donos */
+.donos-resumo { font-weight: 500; margin: 0 0 1rem; }
+ol.donos { list-style: none; margin: 0; padding: 0; }
+.dono {
+  display: grid;
+  grid-template-columns: minmax(10rem, 16rem) 1fr 4.5rem;
+  gap: 1rem;
+  align-items: center;
+  padding: .45rem 0;
+  border-bottom: 1px solid #edf1f2;
+  font-size: .9rem;
+}
+.dono-quem a { display: block; font-family: var(--mono); font-size: .75rem; color: var(--tinta-fraca); }
+.dono-barra { height: .6rem; background: var(--papel); }
+.dono-barra span { display: block; height: 100%; background: var(--tinta-fraca); }
+.dono.desconhecido .dono-barra span, .dono.projeto .dono-barra span { background: var(--atencao); }
+.dono.pool .dono-barra span { background: var(--estrutura); }
+.dono.corretora .dono-barra span { background: var(--entrada); }
+.dono-pct { font-family: var(--mono); font-size: .85rem; text-align: right; }
+
+@media (max-width: 640px) {
+  .termometro { grid-template-columns: 1fr; }
+  .dono { grid-template-columns: 1fr 4rem; }
+  .dono-barra { grid-column: 1 / -1; grid-row: 2; }
+}
