@@ -85,6 +85,7 @@ const textos = {
 
     voltar: 'Nova busca',
     rodape: 'Dados lidos diretamente das blockchains Ethereum e Solana.',
+    rodapePrivacidade: 'Privacidade e cookies',
     trocarIdioma: 'English',
 
     // ---- topo ----
@@ -164,6 +165,23 @@ const textos = {
     motivoDesconhecido: 'carteira sem nome público: não sabemos quem é',
     motivoTransferencia: 'passagem direta entre carteiras; não foi compra nem venda na bolsa',
     fuso: 'horário de Brasília',
+
+    // ---- pagina de privacidade ----
+    privTitulo: 'Privacidade e cookies',
+    privParagrafos: [
+      'O Rastreio Cripto lê dados públicos das blockchains Ethereum e Solana e os organiza para leitura. Não pedimos cadastro, e-mail ou qualquer dado pessoal para usar o site.',
+      'Como qualquer site, guardamos registros técnicos básicos de acesso (como endereço IP e navegador usado), gerados automaticamente pelos serviços que hospedam o site (Vercel e Supabase), usados apenas para manter o site funcionando e detectar abuso.',
+      'Este site pode exibir anúncios fornecidos pelo Google (Google AdSense). O Google e seus parceiros podem usar cookies para exibir anúncios com base em visitas suas a este e a outros sites. Você pode desativar a personalização de anúncios visitando as Configurações de Anúncios do Google, em adssettings.google.com.',
+      'Este site pode conter links de afiliados de corretoras de criptomoedas. Se você se cadastrar em uma corretora através de um desses links, o Rastreio Cripto pode receber uma comissão, sem custo adicional para você. Isso não influencia as análises e alertas mostrados sobre nenhum token.',
+      'As informações mostradas neste site são leituras públicas da blockchain, algumas classificadas como indício (interpretação nossa) e não como fato. Nada aqui é recomendação de investimento.',
+      'Dúvidas sobre esta política podem ser enviadas para o contato disponível na página inicial do repositório do projeto.',
+    ],
+
+    // ---- anuncio de afiliado ----
+    anuncioEtiqueta: 'Publicidade',
+    anuncioTitulo: 'Quer negociar este token?',
+    anuncioTexto: (c) => `Abra uma conta na ${c} para comprar e vender. Este é um link de afiliado: se você se cadastrar por ele, o Rastreio Cripto pode receber uma comissão, sem custo extra para você.`,
+    anuncioBotao: (c) => `Abrir conta na ${c}`,
   },
 
   en: {
@@ -246,6 +264,7 @@ const textos = {
 
     voltar: 'New search',
     rodape: 'Data read directly from the Ethereum and Solana blockchains.',
+    rodapePrivacidade: 'Privacy and cookies',
     trocarIdioma: 'Português',
 
     // ---- top ----
@@ -325,6 +344,23 @@ const textos = {
     motivoDesconhecido: 'wallet with no public name: we do not know who it is',
     motivoTransferencia: 'direct transfer between wallets; not a buy or sell on an exchange',
     fuso: 'UTC',
+
+    // ---- privacy page ----
+    privTitulo: 'Privacy and cookies',
+    privParagrafos: [
+      'Rastreio Cripto reads public data from the Ethereum and Solana blockchains and organises it for reading. We do not require sign-up, e-mail, or any personal data to use the site.',
+      'Like any website, we keep basic technical access logs (such as IP address and browser used), generated automatically by the services that host the site (Vercel and Supabase), used only to keep the site running and to detect abuse.',
+      'This site may display ads provided by Google (Google AdSense). Google and its partners may use cookies to serve ads based on your visits to this and other sites. You can opt out of personalised advertising by visiting Google Ads Settings at adssettings.google.com.',
+      'This site may contain affiliate links to cryptocurrency exchanges. If you sign up with an exchange through one of these links, Rastreio Cripto may earn a commission, at no extra cost to you. This does not influence the analysis and alerts shown for any token.',
+      'The information shown on this site is a public reading of the blockchain, some of it classified as an indication (our interpretation) rather than a fact. Nothing here is investment advice.',
+      'Questions about this policy can be sent to the contact listed on the project repository home page.',
+    ],
+
+    // ---- affiliate banner ----
+    anuncioEtiqueta: 'Advertisement',
+    anuncioTitulo: 'Want to trade this token?',
+    anuncioTexto: (c) => `Open an account on ${c} to buy and sell. This is an affiliate link: if you sign up through it, Rastreio Cripto may earn a commission, at no extra cost to you.`,
+    anuncioBotao: (c) => `Open an account on ${c}`,
   },
 };
 
