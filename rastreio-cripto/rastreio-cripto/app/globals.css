@@ -527,3 +527,31 @@ ol.donos { list-style: none; margin: 0; padding: 0; }
   .dono { grid-template-columns: 1fr 4rem; }
   .dono-barra { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* banner de afiliado */
+.anuncio { position: relative; border-color: var(--linha); }
+.anuncio-etiqueta {
+  position: absolute;
+  top: .9rem;
+  right: 1.1rem;
+  font-size: .7rem;
+  text-transform: none;
+  color: var(--tinta-fraca);
+  border: 1px solid var(--linha);
+  padding: .05rem .5rem;
+  border-radius: 2px;
+}
+.anuncio-corpo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.anuncio-corpo h3 { margin: 0 0 .35rem; font-size: 1.05rem; }
+.anuncio-corpo p { margin: 0; font-size: .88rem; color: var(--tinta-fraca); max-width: 34rem; }
+.anuncio-corpo .botao { white-space: nowrap; }
+
+/* rodape com link de privacidade */
+.rodape-interno { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.rodape-interno a { color: var(--tinta-fraca); text-decoration: underline; }
