@@ -86,6 +86,84 @@ const textos = {
     voltar: 'Nova busca',
     rodape: 'Dados lidos diretamente das blockchains Ethereum e Solana.',
     trocarIdioma: 'English',
+
+    // ---- topo ----
+    idadeTitulo: 'Negociado desde',
+    idadeDias: (d) => d === 0 ? 'hoje' : d === 1 ? 'há 1 dia' : `há ${d} dias`,
+    idadeNovo: 'token novo',
+    idadeDesconhecida: 'Data de início desconhecida',
+    termometroTitulo: 'Nível de atenção',
+    termometroBaixo: 'Baixo',
+    termometroMedio: 'Médio',
+    termometroAlto: 'Alto',
+    termometroResumo: (a, m) => `${a} ${a === 1 ? 'sinal forte' : 'sinais fortes'} e ${m} ${m === 1 ? 'sinal moderado' : 'sinais moderados'} nesta leitura.`,
+    termometroAviso: 'Resume os sinais abaixo. Não é nota do projeto nem recomendação.',
+    porque: 'Por quê',
+
+    // ---- carteiras do projeto ----
+    projetoTitulo: 'O que as carteiras do projeto estão fazendo',
+    projetoSub: 'Carteiras que criaram o contrato, controlam a emissão ou receberam tokens direto delas. A ligação com o projeto é deduzida (indício).',
+    projetoNenhuma: 'Não conseguimos identificar carteiras do projeto neste token. Na Solana isso é comum quando o criador renunciou ao controle do contrato; na Ethereum, quando o criador nunca movimentou o token.',
+    projetoParado: 'Nenhuma movimentação das carteiras do projeto nos últimos 30 dias.',
+    projetoQtd: (n) => `${n} ${n === 1 ? 'carteira identificada' : 'carteiras identificadas'}`,
+    projetoUltimo: 'Último movimento',
+    projetoVerCarteiras: 'Ver as carteiras',
+    acaoVenderam: 'Venderam na bolsa descentralizada',
+    acaoParaCorretora: 'Mandaram para corretoras',
+    acaoTransferiram: 'Mandaram para outras carteiras',
+    acaoQueimaram: 'Queimaram (destruíram) tokens',
+    acaoCompraram: 'Compraram',
+    acaoDeCorretora: 'Receberam de corretoras',
+    acaoReceberam: 'Receberam de outras carteiras',
+    motivoProjetoCriador: 'criou o contrato ou controla a emissão',
+    motivoProjetoRecebeu: 'recebeu tokens direto da carteira que controla o contrato',
+
+    // ---- raio-x ----
+    raioTitulo: 'Raio-x: quem está comprando e quem está vendendo',
+    raioSub: 'As mesmas compras e vendas do balanço, separadas por tipo de carteira.',
+    raioCategoria: 'Quem',
+    raioSaldo: 'Saldo',
+    catCorretoras: 'Corretoras identificadas',
+    catProjeto: 'Carteiras do projeto',
+    catGrandes: 'Carteiras grandes não identificadas',
+    catDemais: 'Demais carteiras',
+    catCorretorasAjuda: 'Fato: endereços públicos de corretoras.',
+    catProjetoAjuda: 'Indício: ligação deduzida com o criador do contrato.',
+    catGrandesAjuda: 'Indício: operações acima de $10 mil ou de 0,1% do total emitido.',
+    catDemaisAjuda: 'Operações menores, de carteiras sem identificação.',
+    raioVazio: 'Sem compras ou vendas neste período.',
+
+    // ---- liquidez ----
+    liqTitulo: 'Liquidez ao longo do tempo',
+    liqSub: 'Liquidez é o dinheiro disponível nas pools para quem quer comprar ou vender. Registramos um ponto a cada leitura do site.',
+    liqPoucos: 'Ainda temos poucas leituras deste token para comparar. Cada vez que alguém abre esta página, um novo ponto é registrado.',
+    liqEstavel: (v) => `Liquidez estável: variou ${v}% no período registrado.`,
+    liqSubiu: (v) => `Liquidez aumentou ${v}% no período registrado.`,
+    liqBrusca: (v, m) => `Queda de ${v}% — e ${m}% de uma vez só, entre duas leituras. Queda repentina é o formato clássico de puxada de tapete.`,
+    liqGradual: (v, q) => `Queda de ${v}%, aos poucos, em ${q} retiradas. Retirada gradual pode ser saída silenciosa de quem controla a pool.`,
+    liqPeriodo: (n, de, ate) => `${n} leituras, de ${de} a ${ate}.`,
+
+    // ---- donos ----
+    donosTitulo: 'Quem guarda mais tokens agora',
+    donosSub: 'As 10 carteiras com mais tokens neste momento, em % do total emitido.',
+    donosResumo: (t, d) => `As 10 maiores carteiras têm ${t}% de todos os tokens. Carteiras sem identificação somam ${d}%.`,
+    donosIndisponivel: 'Não foi possível ler os maiores donos agora. Tente atualizar mais tarde.',
+    donosAviso: 'Algumas carteiras sem identificação podem ser pools, contratos de travamento ou cofres do próprio projeto que não estão na nossa lista.',
+    donosLido: 'Lido',
+    tipoPool: 'Pool de negociação',
+    tipoCorretora: 'Corretora',
+    tipoQueima: 'Endereço de queima',
+    tipoProjeto: 'Carteira do projeto',
+    tipoDesconhecido: 'Não identificada',
+
+    // ---- motivos dos movimentos ----
+    motivoPoolPadrao: 'pool deduzida pelo padrão da transação, não está na lista oficial',
+    motivoDexPrograma: (dex) => `passou pelo programa ${dex}; a direção (compra ou venda) foi deduzida de quem pagou a taxa`,
+    motivoProjeto: (r) => `carteira ligada ao projeto porque ${r}`,
+    motivoBaleia: (usd, pct) => `carteira sem nome público; chamamos de grande porque movimentou ${usd}${pct ? ` (${pct}% do total emitido)` : ''}`,
+    motivoDesconhecido: 'carteira sem nome público: não sabemos quem é',
+    motivoTransferencia: 'passagem direta entre carteiras; não foi compra nem venda na bolsa',
+    fuso: 'horário de Brasília',
   },
 
   en: {
@@ -169,6 +247,84 @@ const textos = {
     voltar: 'New search',
     rodape: 'Data read directly from the Ethereum and Solana blockchains.',
     trocarIdioma: 'Português',
+
+    // ---- top ----
+    idadeTitulo: 'Trading since',
+    idadeDias: (d) => d === 0 ? 'today' : d === 1 ? '1 day ago' : `${d} days ago`,
+    idadeNovo: 'new token',
+    idadeDesconhecida: 'Start date unknown',
+    termometroTitulo: 'Attention level',
+    termometroBaixo: 'Low',
+    termometroMedio: 'Medium',
+    termometroAlto: 'High',
+    termometroResumo: (a, m) => `${a} strong and ${m} moderate ${a + m === 1 ? 'signal' : 'signals'} in this read.`,
+    termometroAviso: 'Summarises the signals below. Not a project rating or advice.',
+    porque: 'Why',
+
+    // ---- project wallets ----
+    projetoTitulo: 'What the project wallets are doing',
+    projetoSub: 'Wallets that created the contract, control minting, or received tokens directly from them. The link to the project is inferred (indication).',
+    projetoNenhuma: 'We could not identify project wallets for this token. On Solana this is common when the creator renounced control; on Ethereum, when the creator never moved the token.',
+    projetoParado: 'No movement from project wallets in the last 30 days.',
+    projetoQtd: (n) => `${n} ${n === 1 ? 'wallet identified' : 'wallets identified'}`,
+    projetoUltimo: 'Last movement',
+    projetoVerCarteiras: 'See the wallets',
+    acaoVenderam: 'Sold on decentralised exchanges',
+    acaoParaCorretora: 'Sent to exchanges',
+    acaoTransferiram: 'Sent to other wallets',
+    acaoQueimaram: 'Burned (destroyed) tokens',
+    acaoCompraram: 'Bought',
+    acaoDeCorretora: 'Received from exchanges',
+    acaoReceberam: 'Received from other wallets',
+    motivoProjetoCriador: 'created the contract or controls minting',
+    motivoProjetoRecebeu: 'received tokens directly from the wallet that controls the contract',
+
+    // ---- x-ray ----
+    raioTitulo: 'X-ray: who is buying and who is selling',
+    raioSub: 'The same buys and sells as the balance, split by type of wallet.',
+    raioCategoria: 'Who',
+    raioSaldo: 'Net',
+    catCorretoras: 'Identified exchanges',
+    catProjeto: 'Project wallets',
+    catGrandes: 'Large unidentified wallets',
+    catDemais: 'Everyone else',
+    catCorretorasAjuda: 'Confirmed: public exchange addresses.',
+    catProjetoAjuda: 'Indication: link to the contract creator is inferred.',
+    catGrandesAjuda: 'Indication: trades above $10k or 0.1% of total supply.',
+    catDemaisAjuda: 'Smaller trades from unidentified wallets.',
+    raioVazio: 'No buys or sells in this period.',
+
+    // ---- liquidity ----
+    liqTitulo: 'Liquidity over time',
+    liqSub: 'Liquidity is the money available in pools for people who want to buy or sell. We record one point each time the site reads this token.',
+    liqPoucos: 'We still have few reads of this token to compare. Every time someone opens this page, a new point is recorded.',
+    liqEstavel: (v) => `Liquidity is stable: it changed ${v}% over the recorded period.`,
+    liqSubiu: (v) => `Liquidity grew ${v}% over the recorded period.`,
+    liqBrusca: (v, m) => `Down ${v}% — ${m}% of it in one go, between two reads. A sudden drop is the classic shape of a rug pull.`,
+    liqGradual: (v, q) => `Down ${v}%, bit by bit, across ${q} withdrawals. Gradual withdrawal can be a quiet exit by whoever controls the pool.`,
+    liqPeriodo: (n, de, ate) => `${n} reads, from ${de} to ${ate}.`,
+
+    // ---- holders ----
+    donosTitulo: 'Who holds the most tokens now',
+    donosSub: 'The 10 wallets holding the most tokens right now, as % of total supply.',
+    donosResumo: (t, d) => `The top 10 wallets hold ${t}% of all tokens. Unidentified wallets add up to ${d}%.`,
+    donosIndisponivel: 'Could not read the top holders right now. Try refreshing later.',
+    donosAviso: 'Some unidentified wallets may be pools, lock contracts or project treasuries that are not on our list.',
+    donosLido: 'Read',
+    tipoPool: 'Trading pool',
+    tipoCorretora: 'Exchange',
+    tipoQueima: 'Burn address',
+    tipoProjeto: 'Project wallet',
+    tipoDesconhecido: 'Unidentified',
+
+    // ---- movement reasons ----
+    motivoPoolPadrao: 'pool inferred from the transaction pattern, not on the official list',
+    motivoDexPrograma: (dex) => `went through the ${dex} program; direction (buy or sell) inferred from who paid the fee`,
+    motivoProjeto: (r) => `wallet linked to the project because it ${r}`,
+    motivoBaleia: (usd, pct) => `wallet with no public name; we call it large because it moved ${usd}${pct ? ` (${pct}% of total supply)` : ''}`,
+    motivoDesconhecido: 'wallet with no public name: we do not know who it is',
+    motivoTransferencia: 'direct transfer between wallets; not a buy or sell on an exchange',
+    fuso: 'UTC',
   },
 };
 
@@ -182,10 +338,6 @@ const alertas = {
     dev_vendendo: {
       titulo: 'Carteira ligada ao projeto enviando tokens para fora',
       texto: 'Uma carteira que recebeu tokens logo no início da vida do projeto mandou {qtd} ({pct}% do total emitido) para {destino}. Historicamente isso aparece antes de vendas grandes, mas também pode ser pagamento, listagem ou distribuição combinada.',
-    },
-    liquidez_caiu: {
-      titulo: 'Liquidez caiu forte em pouco tempo',
-      texto: 'A liquidez disponível para negociar caiu {pct}% desde a nossa leitura anterior. Liquidez sumindo é o principal sinal associado a puxada de tapete, mas também acontece quando provedores legítimos retiram fundos.',
     },
     emissao_aberta: {
       titulo: 'O projeto ainda pode criar mais tokens',
@@ -213,17 +365,49 @@ const alertas = {
     },
     token_novo: {
       titulo: 'Token muito recente',
-      texto: 'Este token tem menos de 30 dias de vida. Projetos novos concentram a maior parte dos casos de puxada de tapete.',
+      texto: 'O primeiro par de negociação deste token foi criado há {dias} dias. Projetos novos concentram a maior parte dos casos de puxada de tapete.',
+    },
+    liquidez_brusca: {
+      titulo: 'Liquidez sumiu de uma vez',
+      texto: 'A liquidez caiu {pct}% no período que registramos, sendo {maior}% entre duas leituras seguidas. Queda repentina é o formato clássico de puxada de tapete, mas também acontece quando um grande provedor legítimo sai.',
+    },
+    liquidez_gradual: {
+      titulo: 'Liquidez sendo retirada aos poucos',
+      texto: 'A liquidez caiu {pct}% ao longo de {quedas} retiradas menores. Saída em pedaços chama menos atenção do que uma retirada única.',
+    },
+    valores_repetidos: {
+      titulo: 'Possível negociação artificial: a mesma quantia repetida',
+      texto: 'Nos últimos 7 dias, {n} compras e vendas tiveram exatamente a mesma quantidade (cerca de {valor} cada), feitas por apenas {carteiras} carteira(s), num intervalo de {horas} hora(s). Isso representa {pct}% do volume da semana. Robôs de volume costumam fazer isso para o token parecer mais negociado do que é.',
+    },
+    vai_e_volta: {
+      titulo: 'Possível negociação artificial: a mesma carteira compra e vende',
+      texto: 'Uma carteira comprou {compras} vezes e vendeu {vendas} vezes nos últimos 7 dias, movimentando {qtd}. Encontramos {carteiras} carteira(s) com esse comportamento. Comprar e vender de si mesmo infla o volume sem mudar de dono — mas robôs de arbitragem legítimos também agem assim.',
+    },
+    carteiras_irmas: {
+      titulo: 'Carteiras abastecidas pela mesma origem',
+      texto: 'Uma mesma carteira distribuiu tokens para {n} carteiras diferentes, e {venderam} delas já venderam (cerca de {qtd}). Parecem investidores independentes, mas a origem comum sugere que podem ser a mesma pessoa ou grupo. Só enxergamos distribuição feita com o próprio token.',
+    },
+    irmas_projeto: {
+      titulo: 'Carteira do projeto abasteceu carteiras que estão vendendo',
+      texto: 'Uma carteira ligada ao projeto distribuiu tokens para {n} carteiras, e {venderam} delas já venderam (cerca de {qtd}). É um padrão comum de venda disfarçada: o projeto espalha tokens para vender por várias portas.',
+    },
+    horario_venda: {
+      titulo: 'Vendas sempre no mesmo horário',
+      texto: '{quem} vendeu em {dias} dias diferentes, sempre por volta das {hora} ({fuso}), somando {qtd}. Repetição assim costuma indicar venda programada — alguém executando uma estratégia fixa todos os dias.',
+    },
+    horario_compra: {
+      titulo: 'Compras sempre no mesmo horário',
+      texto: '{quem} comprou em {dias} dias diferentes, sempre por volta das {hora} ({fuso}), somando {qtd}. Repetição assim costuma indicar compra programada — pode ser acumulação planejada ou robô.',
+    },
+    donos_concentrados: {
+      titulo: 'Poucas carteiras sem identificação guardam muito',
+      texto: 'Carteiras sem identificação entre as 10 maiores guardam {pct}% de todos os tokens. Se poucas delas venderem juntas, o preço pode desabar. Parte disso pode ser pool ou cofre do projeto que não conhecemos.',
     },
   },
   en: {
     dev_vendendo: {
       titulo: 'Wallet linked to the project sending tokens out',
       texto: 'A wallet that received tokens early in the project\'s life sent {qtd} ({pct}% of total supply) to {destino}. Historically this shows up before large sales, but it can also be payment, a listing, or an agreed distribution.',
-    },
-    liquidez_caiu: {
-      titulo: 'Liquidity dropped sharply in a short time',
-      texto: 'Liquidity available for trading fell {pct}% since our previous read. Disappearing liquidity is the main signal associated with a rug pull, but it also happens when legitimate providers withdraw funds.',
     },
     emissao_aberta: {
       titulo: 'The project can still create more tokens',
@@ -251,17 +435,129 @@ const alertas = {
     },
     token_novo: {
       titulo: 'Very recent token',
-      texto: 'This token is less than 30 days old. New projects account for most rug pull cases.',
+      texto: 'The first trading pair for this token was created {dias} days ago. New projects account for most rug pull cases.',
+    },
+    liquidez_brusca: {
+      titulo: 'Liquidity vanished in one go',
+      texto: 'Liquidity fell {pct}% over the period we recorded, {maior}% of it between two consecutive reads. A sudden drop is the classic shape of a rug pull, but it also happens when a large legitimate provider leaves.',
+    },
+    liquidez_gradual: {
+      titulo: 'Liquidity being withdrawn bit by bit',
+      texto: 'Liquidity fell {pct}% across {quedas} smaller withdrawals. Leaving in pieces draws less attention than a single withdrawal.',
+    },
+    valores_repetidos: {
+      titulo: 'Possible fake trading: the same amount over and over',
+      texto: 'In the last 7 days, {n} buys and sells had exactly the same size (about {valor} each), made by only {carteiras} wallet(s), within {horas} hour(s). That is {pct}% of the week\'s volume. Volume bots do this to make a token look more traded than it is.',
+    },
+    vai_e_volta: {
+      titulo: 'Possible fake trading: the same wallet buys and sells',
+      texto: 'One wallet bought {compras} times and sold {vendas} times in the last 7 days, moving {qtd}. We found {carteiras} wallet(s) behaving like this. Trading with yourself inflates volume without changing owners — though legitimate arbitrage bots also do this.',
+    },
+    carteiras_irmas: {
+      titulo: 'Wallets funded from the same source',
+      texto: 'A single wallet sent tokens to {n} different wallets, and {venderam} of them have already sold (about {qtd}). They look like independent investors, but the common source suggests they may be the same person or group. We only see funding done with the token itself.',
+    },
+    irmas_projeto: {
+      titulo: 'Project wallet funded wallets that are now selling',
+      texto: 'A wallet linked to the project sent tokens to {n} wallets, and {venderam} of them have already sold (about {qtd}). This is a common disguised-selling pattern: spread tokens out, then sell through many doors.',
+    },
+    horario_venda: {
+      titulo: 'Sales always at the same time',
+      texto: '{quem} sold on {dias} different days, always around {hora} ({fuso}), totalling {qtd}. This kind of repetition usually points to scheduled selling — someone running a fixed strategy every day.',
+    },
+    horario_compra: {
+      titulo: 'Buys always at the same time',
+      texto: '{quem} bought on {dias} different days, always around {hora} ({fuso}), totalling {qtd}. This kind of repetition usually points to scheduled buying — planned accumulation or a bot.',
+    },
+    donos_concentrados: {
+      titulo: 'A few unidentified wallets hold a lot',
+      texto: 'Unidentified wallets among the top 10 hold {pct}% of all tokens. If a few of them sell together, the price can crash. Part of this may be a pool or project treasury we do not know about.',
     },
   },
 };
+
+// Por que cada alerta e INDICIO (e nao fato). Aparece ao lado do selo.
+const motivosAlerta = {
+  pt: {
+    dev_vendendo: 'a ligação da carteira com o projeto é deduzida: ela recebeu tokens de quem criou o contrato.',
+    liquidez_brusca: 'medimos a liquidez só quando alguém abre a página; não sabemos quem retirou nem por quê.',
+    liquidez_gradual: 'medimos a liquidez só quando alguém abre a página; não sabemos quem retirou nem por quê.',
+    saida_para_corretora: 'depositar numa corretora não é vender; é só o passo que costuma vir antes.',
+    entrada_de_corretora: 'sacar de uma corretora não é comprar; é o passo que costuma vir depois.',
+    rajada_saida: 'a concentração no tempo é real, mas o motivo é leitura nossa.',
+    valores_repetidos: 'quantias idênticas e poucas carteiras são o padrão de robôs de volume, mas não provam quem está por trás.',
+    vai_e_volta: 'comprar e vender repetidamente é padrão de volume falso, mas robôs de arbitragem legítimos fazem igual.',
+    carteiras_irmas: 'a origem comum é fato na blockchain; que sejam a mesma pessoa é dedução.',
+    irmas_projeto: 'a ligação da origem com o projeto é deduzida, e o motivo da distribuição também.',
+    horario_venda: 'a repetição de horário é fato; que seja estratégia programada é dedução.',
+    horario_compra: 'a repetição de horário é fato; que seja estratégia programada é dedução.',
+    concentracao: 'mostra quem mais movimentou, não quem mais tem.',
+    donos_concentrados: 'os saldos são fato, mas carteiras "sem identificação" podem ser pools ou cofres que não conhecemos.',
+    emissao_aberta: 'lido diretamente do contrato.',
+    congelamento_aberto: 'lido diretamente do contrato.',
+    token_novo: 'data do primeiro par de negociação registrado.',
+  },
+  en: {
+    dev_vendendo: 'the wallet\'s link to the project is inferred: it received tokens from the contract creator.',
+    liquidez_brusca: 'we only measure liquidity when someone opens the page; we do not know who withdrew or why.',
+    liquidez_gradual: 'we only measure liquidity when someone opens the page; we do not know who withdrew or why.',
+    saida_para_corretora: 'depositing on an exchange is not selling; it is the step that usually comes before.',
+    entrada_de_corretora: 'withdrawing from an exchange is not buying; it is the step that usually comes after.',
+    rajada_saida: 'the clustering is real, but the reason is our reading.',
+    valores_repetidos: 'identical amounts and few wallets are the pattern of volume bots, but do not prove who is behind them.',
+    vai_e_volta: 'repeated buying and selling is a fake-volume pattern, but legitimate arbitrage bots do the same.',
+    carteiras_irmas: 'the common source is an on-chain fact; that they are the same person is inferred.',
+    irmas_projeto: 'the source\'s link to the project is inferred, and so is the reason for the distribution.',
+    horario_venda: 'the repeated timing is a fact; that it is a scheduled strategy is inferred.',
+    horario_compra: 'the repeated timing is a fact; that it is a scheduled strategy is inferred.',
+    concentracao: 'shows who moved the most, not who holds the most.',
+    donos_concentrados: 'balances are a fact, but "unidentified" wallets may be pools or treasuries we do not know.',
+    emissao_aberta: 'read directly from the contract.',
+    congelamento_aberto: 'read directly from the contract.',
+    token_novo: 'date of the first recorded trading pair.',
+  },
+};
+
+// Os valores chegam no formato brasileiro ($1.234,56). Em ingles, trocamos
+// ponto por virgula ($1,234.56). Porcentagens (1.20) viram 1,20 em portugues.
+function ajustarNumero(locale, v) {
+  if (typeof v !== 'string') return v;
+  if (locale === 'en' && v.startsWith('$')) {
+    return v.replace(/[.,]/g, (c) => (c === '.' ? ',' : '.'));
+  }
+  if (locale !== 'en' && /^\d+\.\d+$/.test(v)) return v.replace('.', ',');
+  return v;
+}
 
 export function textoAlerta(locale, codigo, valores = {}) {
   const base = (alertas[locale] || alertas.pt)[codigo];
   if (!base) return { titulo: codigo, texto: '' };
   let texto = base.texto;
   for (const [k, v] of Object.entries(valores)) {
-    texto = texto.replaceAll(`{${k}}`, v);
+    texto = texto.replaceAll(`{${k}}`, ajustarNumero(locale, v));
   }
-  return { titulo: base.titulo, texto };
+  texto = texto.replaceAll('{fuso}', t(locale).fuso);
+  const motivo = (motivosAlerta[locale] || motivosAlerta.pt)[codigo] || '';
+  return { titulo: base.titulo, texto, motivo };
+}
+
+/** Motivo curto de um movimento individual, para mostrar ao lado do selo. */
+export function motivoMovimento(locale, m, { motivosProjeto, formatarUsd }) {
+  const txt = t(locale);
+  if (m.confidence === 'confirmado') return null;
+  if (m.actor === 'dex') {
+    if (m.actor_label === 'Pool de negociação') return txt.motivoPoolPadrao;
+    return txt.motivoDexPrograma(m.actor_label || 'DEX');
+  }
+  if (m.actor === 'projeto') {
+    const bruto = motivosProjeto.get(m.from_addr) || motivosProjeto.get(m.to_addr) || '';
+    const r = bruto.startsWith('criou') ? txt.motivoProjetoCriador : txt.motivoProjetoRecebeu;
+    return txt.motivoProjeto(r);
+  }
+  if (m.actor === 'baleia') {
+    const pct = m.supply_pct ? Number(m.supply_pct).toFixed(2) : null;
+    return txt.motivoBaleia(formatarUsd(Number(m.usd_value)), pct);
+  }
+  if (m.kind === 'transferencia') return txt.motivoTransferencia;
+  return txt.motivoDesconhecido;
 }

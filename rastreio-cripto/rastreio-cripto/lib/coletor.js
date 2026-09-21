@@ -1,9 +1,7 @@
 // ============================================================
 // COLETOR
 // Le a blockchain, classifica o que encontrou e grava no Supabase.
-// E chamado em dois momentos:
-//   - quando alguem abre a pagina de um token (sob demanda)
-//   - a cada 15 minutos pela rotina automatica
+// E chamado quando alguem abre a pagina de um token (sob demanda).
 // ============================================================
 
 import { db } from './supabase';
@@ -11,6 +9,12 @@ import { transferenciasEthereum, criadorDoContrato, supplyEthereum } from './eth
 import { transferenciasSolana, dadosDoMint, metadadosSolana } from './solana';
 import { situacaoDoToken } from './precos';
 import { classificar, detectarCarteirasProjeto } from './analise';
+import { maioresDonos } from './donos';
+
+function nomePool(dex) {
+  if (!dex || dex === 'pool') return 'Pool de negociação';
+  return `Pool ${dex.charAt(0).toUpperCase()}${dex.slice(1)}`;
+}
 
 export function normalizarEndereco(chain, addr) {
   if (!addr) return '';
@@ -70,7 +74,11 @@ export async function coletar(chain, address) {
   };
   if (situacao?.simbolo) atualizacaoToken.symbol = situacao.simbolo;
   if (situacao?.nome) atualizacaoToken.name = situacao.nome;
-  if (situacao?.criado_em && !token.created_on_chain_at) {
+  // Guarda a data do par de negociacao mais antigo que ja vimos.
+  if (
+    situacao?.criado_em &&
+    (!token.created_on_chain_at || new Date(situacao.criado_em) < new Date(token.created_on_chain_at))
+  ) {
     atualizacaoToken.created_on_chain_at = situacao.criado_em;
   }
 
@@ -118,8 +126,41 @@ export async function coletar(chain, address) {
   const limite = Date.now() - 31 * 86400000;
   brutas = brutas.filter((t) => new Date(t.ts).getTime() >= limite);
 
-  // ---- 4. Classificacao ----
+  // ---- 4. Pools de negociacao ----
+  // Sem saber quais carteiras sao pools, nao da pra saber o que foi
+  // compra e o que foi venda em tokens pequenos (que nao estao na lista fixa).
+  const pools = new Map();
+  for (const p of token.pools || []) pools.set(p.address, p);
+  for (const p of situacao?.pools || []) {
+    const a = normalizarEndereco(chain, p.address);
+    pools.set(a, { address: a, dex: p.dex, origem: 'dexscreener' });
+  }
+  if (chain === 'solana') {
+    // Numa troca (SWAP), quem pagou a taxa e o usuario.
+    // Quem estava do outro lado do token e a pool (ou um intermediario dela).
+    for (const t of brutas) {
+      if (t.dica_tipo !== 'SWAP' || !t.iniciador) continue;
+      for (const a of [t.from_addr, t.to_addr]) {
+        if (a && a !== t.iniciador && !pools.has(a)) {
+          pools.set(a, { address: a, dex: 'pool', origem: 'padrao' });
+        }
+      }
+    }
+  }
+  atualizacaoToken.pools = [...pools.values()].slice(-60);
+
+  // ---- 5. Classificacao ----
   const rotulos = await carregarRotulos();
+  for (const p of atualizacaoToken.pools) {
+    const chave = `${chain}:${p.address}`;
+    if (rotulos.has(chave)) continue;
+    rotulos.set(chave, {
+      label: nomePool(p.dex),
+      category: 'dex',
+      // Pool vinda da DexScreener e fato; pool deduzida pelo padrao e indicio.
+      indicio: p.origem === 'padrao',
+    });
+  }
   const supply = atualizacaoToken.total_supply ?? token.total_supply ?? null;
   const preco = situacao?.price_usd ?? null;
 
@@ -138,7 +179,7 @@ export async function coletar(chain, address) {
     )
   );
 
-  // ---- 5. Gravacao ----
+  // ---- 6. Gravacao ----
   if (classificadas.length) {
     const linhas = classificadas.map((t) => ({
       chain: t.chain,
@@ -189,7 +230,23 @@ export async function coletar(chain, address) {
     });
   }
 
-  await s.from('tokens').update(atualizacaoToken).eq('chain', chain).eq('address', addr);
+  // Maiores donos: no maximo uma consulta a cada 30 minutos por token.
+  const donosVelhos =
+    !token.top_holders_at || Date.now() - new Date(token.top_holders_at).getTime() > 30 * 60 * 1000;
+  if (donosVelhos) {
+    const donos = await maioresDonos(chain, addr, supply);
+    if (donos) {
+      atualizacaoToken.top_holders = donos;
+      atualizacaoToken.top_holders_at = new Date().toISOString();
+    }
+  }
+
+  const { error: erroToken } = await s.from('tokens').update(atualizacaoToken).eq('chain', chain).eq('address', addr);
+  if (erroToken) console.warn('Erro ao atualizar token:', erroToken.message);
+
+  // Apaga o que passou de 31 dias. Antes isso era feito pela rotina
+  // automatica, que foi removida; agora roda a cada leitura.
+  try { await s.rpc('limpar_antigos'); } catch (e) { /* nao pode travar a pagina */ }
 
   return { lidos: brutas.length, token: { ...tokenAtualizado } };
 }
@@ -206,7 +263,7 @@ export async function lerToken(chain, address) {
 
   const desde = new Date(Date.now() - 30 * 86400000).toISOString();
 
-  const [{ data: transferencias }, { data: snapshots }, { data: carteiras }] = await Promise.all([
+  const [{ data: transferencias }, { data: snapshots }, { data: carteiras }, rotulos] = await Promise.all([
     s.from('transfers').select('*')
       .eq('chain', chain).eq('token_address', addr).gte('ts', desde)
       .order('ts', { ascending: false }).limit(2000),
@@ -215,17 +272,32 @@ export async function lerToken(chain, address) {
       .order('ts', { ascending: false }).limit(200),
     s.from('project_wallets').select('address, reason')
       .eq('chain', chain).eq('token_address', addr),
+    carregarRotulos(),
   ]);
+
+  // Enderecos que ja sabemos o que sao (corretoras, pools, queima...).
+  // Servem para nao confundir uma pool ou corretora com "uma pessoa".
+  const conhecidos = new Map();
+  for (const [chave, r] of rotulos) {
+    if (chave.startsWith(`${chain}:`)) conhecidos.set(chave.slice(chain.length + 1), r);
+  }
+  for (const p of token.pools || []) {
+    if (!conhecidos.has(p.address)) {
+      conhecidos.set(p.address, { label: nomePool(p.dex), category: 'dex' });
+    }
+  }
 
   return {
     token,
     transferencias: transferencias || [],
     snapshots: snapshots || [],
     carteirasProjeto: new Set((carteiras || []).map((c) => c.address)),
+    motivosProjeto: new Map((carteiras || []).map((c) => [c.address, c.reason])),
+    conhecidos,
   };
 }
 
-/** Marca que alguem abriu este token — e o que define a fila da rotina automatica. */
+/** Marca que alguem abriu este token (contador de visitas). */
 export async function registrarVisita(chain, address) {
   const s = db();
   const addr = normalizarEndereco(chain, address);

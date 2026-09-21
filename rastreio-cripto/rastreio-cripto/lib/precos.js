@@ -70,7 +70,16 @@ export async function situacaoDoToken(chain, address) {
       sells_24h: pares.reduce((s, p) => s + Number(p.txns?.h24?.sells || 0), 0),
       simbolo: maior.baseToken?.symbol || null,
       nome: maior.baseToken?.name || null,
-      criado_em: maior.pairCreatedAt ? new Date(maior.pairCreatedAt).toISOString() : null,
+      // Idade: usamos o par de negociacao MAIS ANTIGO, nao o maior.
+      criado_em: (() => {
+        const datas = pares.map((p) => Number(p.pairCreatedAt)).filter((n) => n > 0);
+        return datas.length ? new Date(Math.min(...datas)).toISOString() : null;
+      })(),
+      // Enderecos das pools de negociacao. Na Ethereum sao exatamente as
+      // carteiras que enviam/recebem o token numa compra/venda.
+      pools: pares
+        .filter((p) => p.pairAddress)
+        .map((p) => ({ address: p.pairAddress, dex: p.dexId || 'dex' })),
     };
   } catch (e) {
     console.warn('situacaoDoToken:', e.message);
