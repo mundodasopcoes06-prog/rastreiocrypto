@@ -30,7 +30,10 @@ export default function LayoutIdioma({ children, params }) {
       <main>{children}</main>
 
       <footer className="rodape">
-        <div className="envoltorio">{txt.rodape}</div>
+        <div className="envoltorio rodape-interno">
+          <span>{txt.rodape}</span>
+          <Link href={`/${locale}/privacidade`}>{txt.rodapePrivacidade}</Link>
+        </div>
       </footer>
     </div>
   );
