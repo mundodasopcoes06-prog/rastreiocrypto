@@ -16,10 +16,44 @@ import CarteirasProjeto from '@/components/CarteirasProjeto';
 import RaioX from '@/components/RaioX';
 import Liquidez from '@/components/Liquidez';
 import Donos from '@/components/Donos';
+import Anuncio from '@/components/Anuncio';
+import { SITE_URL } from '@/lib/site';
+import { db } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 const REDES = ['ethereum', 'solana'];
+
+export async function generateMetadata({ params }) {
+  const { locale, chain, address } = params;
+  const txt = t(locale);
+  if (!IDIOMAS.includes(locale) || !REDES.includes(chain)) return {};
+
+  const addr = decodeURIComponent(address);
+  let nome = addr;
+  try {
+    const { data } = await db()
+      .from('tokens').select('symbol, name')
+      .eq('chain', chain).eq('address', chain === 'ethereum' ? addr.toLowerCase() : addr)
+      .maybeSingle();
+    if (data?.symbol) nome = data.name ? `${data.symbol} (${data.name})` : data.symbol;
+  } catch (e) { /* usa o endereco mesmo, sem travar a pagina */ }
+
+  const caminho = `${locale}/token/${chain}/${address}`;
+  return {
+    title: `${nome} — ${txt.siteNome}`,
+    description: locale === 'en'
+      ? `On-chain buy and sell activity for ${nome} on ${chain === 'ethereum' ? 'Ethereum' : 'Solana'}, explained in plain language.`
+      : `Movimentações de compra e venda do token ${nome} na blockchain ${chain === 'ethereum' ? 'Ethereum' : 'Solana'}, explicadas em linguagem simples.`,
+    alternates: {
+      canonical: `${SITE_URL}/${caminho}`,
+      languages: {
+        pt: `${SITE_URL}/pt/token/${chain}/${address}`,
+        en: `${SITE_URL}/en/token/${chain}/${address}`,
+      },
+    },
+  };
+}
 
 export default async function PaginaToken({ params }) {
   const { locale, chain } = params;
@@ -137,6 +171,8 @@ export default async function PaginaToken({ params }) {
           <Liquidez locale={locale} liquidez={liquidez} />
 
           <Donos locale={locale} chain={chain} donos={donos} />
+
+          <Anuncio locale={locale} />
 
           <section className="bloco">
             <h2>{txt.fichaTitulo}</h2>
