@@ -18,6 +18,13 @@ export function db() {
 
   cliente = createClient(url, key, {
     auth: { persistSession: false },
+    global: {
+      // Impede que a Vercel guarde uma copia antiga da resposta do banco.
+      // Sem isso, uma leitura feita ha pouco pode continuar sendo devolvida
+      // mesmo depois que os dados no Supabase ja mudaram — foi exatamente
+      // isso que travou o PENDLE.
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   });
   return cliente;
 }
