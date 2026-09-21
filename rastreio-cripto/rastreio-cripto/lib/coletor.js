@@ -28,20 +28,25 @@ export async function carregarRotulos() {
   return mapa;
 }
 
-/** Busca o token no banco; se nao existir, cria. */
+/**
+ * Busca o token no banco; se nao existir, cria.
+ * Usa upsert em vez de "select, depois insert" porque duas requisicoes
+ * podem chegar ao mesmo tempo (ex: o navegador pre-carregando varios
+ * resultados da busca de uma vez). Com upsert, a segunda tentativa e
+ * ignorada em silencio em vez de dar erro de duplicidade.
+ */
 export async function garantirToken(chain, address) {
   const addr = normalizarEndereco(chain, address);
   const s = db();
 
-  const { data: existente } = await s
-    .from('tokens').select('*').eq('chain', chain).eq('address', addr).maybeSingle();
+  const { error: erroCriacao } = await s
+    .from('tokens')
+    .upsert({ chain, address: addr }, { onConflict: 'chain,address', ignoreDuplicates: true });
 
-  if (existente) return existente;
+  if (erroCriacao) throw erroCriacao;
 
   const { data, error } = await s
-    .from('tokens')
-    .insert({ chain, address: addr })
-    .select().single();
+    .from('tokens').select('*').eq('chain', chain).eq('address', addr).single();
 
   if (error) throw error;
   return data;
