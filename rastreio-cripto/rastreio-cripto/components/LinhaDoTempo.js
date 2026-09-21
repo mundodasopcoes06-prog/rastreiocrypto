@@ -1,4 +1,4 @@
-import { t } from '@/lib/dicionario';
+import { t, motivoMovimento } from '@/lib/dicionario';
 import {
   formatarNumero,
   formatarDinheiro,
@@ -17,8 +17,9 @@ const NOMES_ATOR = {
   desconhecido: 'atorDesconhecido',
 };
 
-export default function LinhaDoTempo({ locale, movimentos, simbolo }) {
+export default function LinhaDoTempo({ locale, movimentos, simbolo, motivosProjeto }) {
   const txt = t(locale);
+  const contexto = { motivosProjeto: motivosProjeto || new Map(), formatarUsd: (n) => formatarDinheiro(n, locale) };
 
   return (
     <section className="bloco">
@@ -44,6 +45,7 @@ export default function LinhaDoTempo({ locale, movimentos, simbolo }) {
                 m.kind === 'compra' ? txt.tipoCompra
                 : m.kind === 'venda' ? txt.tipoVenda
                 : txt.tipoTransferencia;
+              const motivo = motivoMovimento(locale, m, contexto);
 
               return (
                 <tr key={`${m.tx_hash}-${m.id}`}>
@@ -63,6 +65,7 @@ export default function LinhaDoTempo({ locale, movimentos, simbolo }) {
                         {m.confidence === 'confirmado' ? txt.explicaFato : txt.explicaIndicio}
                       </span>
                     </span>
+                    {motivo && <span className="motivo-linha">{motivo}</span>}
                     <a
                       className="quem-end"
                       href={linkExplorador(m.chain, 'address', m.counterparty || m.from_addr)}
