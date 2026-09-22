@@ -1,4 +1,5 @@
 import './globals.css';
+import { Analytics } from '@vercel/analytics/next';
 import { VERIFICACOES } from '@/lib/verificacoes';
 
 export const metadata = {
@@ -23,7 +24,10 @@ export default function RootLayout({ children }) {
           <meta name="google-adsense-account" content={`ca-${VERIFICACOES.googleAdsense}`} />
         )}
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
