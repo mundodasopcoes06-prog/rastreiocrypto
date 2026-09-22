@@ -10,6 +10,7 @@ import { transferenciasSolana, dadosDoMint, metadadosSolana } from './solana';
 import { situacaoDoToken } from './precos';
 import { classificar, detectarCarteirasProjeto } from './analise';
 import { maioresDonos } from './donos';
+import { lerCorretoras } from './cex';
 
 function nomePool(dex) {
   if (!dex || dex === 'pool') return 'Pool de negociação';
@@ -238,6 +239,17 @@ export async function coletar(chain, address) {
     if (donos) {
       atualizacaoToken.top_holders = donos;
       atualizacaoToken.top_holders_at = new Date().toISOString();
+    }
+  }
+
+  // Corretoras centralizadas: tambem no maximo a cada 30 minutos.
+  const cexVelho =
+    !token.cex_data_at || Date.now() - new Date(token.cex_data_at).getTime() > 30 * 60 * 1000;
+  if (cexVelho) {
+    const cex = await lerCorretoras(chain, addr);
+    if (cex) {
+      atualizacaoToken.cex_data = cex;
+      atualizacaoToken.cex_data_at = new Date().toISOString();
     }
   }
 
