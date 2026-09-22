@@ -1,4 +1,1 @@
-# Este arquivo sera preenchido pelo Google quando voce for aprovado
-# no AdSense. Ele vai te dar uma linha parecida com:
-#   google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0
-# Apague este comentario e cole a linha que o Google te der.
+google.com, pub-1006892615902995, DIRECT, f08c47fec0942fa0
