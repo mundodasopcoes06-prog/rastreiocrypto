@@ -16,6 +16,7 @@ import CarteirasProjeto from '@/components/CarteirasProjeto';
 import RaioX from '@/components/RaioX';
 import Liquidez from '@/components/Liquidez';
 import Donos from '@/components/Donos';
+import Corretoras from '@/components/Corretoras';
 import Anuncio from '@/components/Anuncio';
 import { SITE_URL } from '@/lib/site';
 import { db } from '@/lib/supabase';
@@ -167,6 +168,8 @@ export default async function PaginaToken({ params }) {
           <Balanco locale={locale} periodos={periodos} serieDiaria={serieDiaria} />
 
           <RaioX locale={locale} periodos={raio} />
+
+          <Corretoras locale={locale} cex={token.cex_data} />
 
           <Liquidez locale={locale} liquidez={liquidez} />
 
