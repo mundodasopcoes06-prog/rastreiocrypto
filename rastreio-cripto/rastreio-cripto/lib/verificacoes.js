@@ -12,5 +12,5 @@ export const VERIFICACOES = {
 
   // O Google AdSense te da um numero parecido com "pub-1234567890123456".
   // Cole exatamente esse numero (com o "pub-" na frente).
-  googleAdsense: '',
+  googleAdsense: 'pub-1006892615902995',
 };
