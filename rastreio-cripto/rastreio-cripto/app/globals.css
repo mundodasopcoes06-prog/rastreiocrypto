@@ -555,3 +555,23 @@ ol.donos { list-style: none; margin: 0; padding: 0; }
 /* rodape com link de privacidade */
 .rodape-interno { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .rodape-interno a { color: var(--tinta-fraca); text-decoration: underline; }
+
+/* nas corretoras (CEX) */
+.cex-variacao { font-size: 1rem; font-weight: 500; margin: 0 0 1rem; }
+.cex-variacao.entrada { color: var(--entrada); }
+.cex-variacao.saida { color: var(--saida); }
+ul.cex-lista { list-style: none; margin: 0; padding: 0; }
+.cex-item { padding: .75rem 0; border-bottom: 1px solid #edf1f2; }
+.cex-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .1rem 1rem;
+  font-size: .92rem;
+}
+.cex-nome { font-weight: 600; min-width: 6rem; }
+.cex-par { font-family: var(--mono); font-size: .8rem; color: var(--tinta-fraca); }
+.cex-preco { font-family: var(--mono); }
+.cex-vol { font-family: var(--mono); font-size: .82rem; color: var(--tinta-fraca); }
+.cex-linha a { margin-left: auto; font-size: .82rem; }
+.cex-fluxo { margin: .3rem 0 0; font-size: .85rem; color: var(--tinta-fraca); }
