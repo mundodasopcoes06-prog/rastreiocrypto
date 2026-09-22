@@ -166,6 +166,19 @@ const textos = {
     motivoTransferencia: 'passagem direta entre carteiras; não foi compra nem venda na bolsa',
     fuso: 'horário de Brasília',
 
+    // ---- corretoras centralizadas (CEX) ----
+    cexTitulo: 'Nas corretoras',
+    cexSub: 'Preço e volume nas maiores corretoras centralizadas. É um mundo separado da blockchain: aqui não é possível saber quais carteiras negociaram, só o total movimentado.',
+    cexIndisponivel: 'Não foi possível consultar as corretoras agora. Tente atualizar a página mais tarde.',
+    cexNaoListado: 'Este token não está listado nas grandes corretoras que verificamos (Binance, Coinbase, KuCoin, OKX, Bybit, Gate.io, MEXC). Isso é comum em tokens novos ou de nicho — o volume dele existe só nas pools on-chain mostradas acima.',
+    cexVariacaoAlta: (pct) => `Considerando todas as corretoras, o preço subiu ${pct}% nas últimas 24 horas.`,
+    cexVariacaoBaixa: (pct) => `Considerando todas as corretoras, o preço caiu ${pct}% nas últimas 24 horas.`,
+    cexVolume: (v) => `volume 24h: ${v}`,
+    cexVerNaCorretora: 'Ver na corretora',
+    cexFluxo: (c, v) => `Nas últimas 24h, ordens a mercado compraram ${c} e venderam ${v} nesta corretora.`,
+    cexSemFluxo: 'Esta corretora não divulga publicamente a divisão entre compra e venda — só o volume total.',
+    cexAviso: 'Preço e volume vêm das próprias corretoras (via CoinGecko, confirmado pelo endereço do contrato — não pelo nome, para evitar confusão com tokens clonados). Diferente do restante da página, aqui nunca é possível saber quais carteiras negociaram.',
+
     // ---- pagina de privacidade ----
     privTitulo: 'Privacidade e cookies',
     privParagrafos: [
@@ -344,6 +357,19 @@ const textos = {
     motivoDesconhecido: 'wallet with no public name: we do not know who it is',
     motivoTransferencia: 'direct transfer between wallets; not a buy or sell on an exchange',
     fuso: 'UTC',
+
+    // ---- centralised exchanges (CEX) ----
+    cexTitulo: 'On exchanges',
+    cexSub: 'Price and volume on the largest centralised exchanges. This is a separate world from the blockchain: here it is never possible to know which wallets traded, only the total moved.',
+    cexIndisponivel: 'Could not check exchanges right now. Try refreshing the page later.',
+    cexNaoListado: 'This token is not listed on the major exchanges we check (Binance, Coinbase, KuCoin, OKX, Bybit, Gate.io, MEXC). This is common for new or niche tokens — its volume only exists in the on-chain pools shown above.',
+    cexVariacaoAlta: (pct) => `Across all exchanges, the price rose ${pct}% over the last 24 hours.`,
+    cexVariacaoBaixa: (pct) => `Across all exchanges, the price fell ${pct}% over the last 24 hours.`,
+    cexVolume: (v) => `24h volume: ${v}`,
+    cexVerNaCorretora: 'View on exchange',
+    cexFluxo: (c, v) => `Over the last 24h, market orders bought ${c} and sold ${v} on this exchange.`,
+    cexSemFluxo: 'This exchange does not publicly break down buys vs sells — only total volume.',
+    cexAviso: 'Price and volume come from the exchanges themselves (via CoinGecko, confirmed by contract address — not by name, to avoid confusion with cloned tokens). Unlike the rest of this page, it is never possible here to know which wallets traded.',
 
     // ---- privacy page ----
     privTitulo: 'Privacy and cookies',
