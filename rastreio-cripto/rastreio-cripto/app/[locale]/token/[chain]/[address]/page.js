@@ -4,7 +4,7 @@ import { IDIOMAS, t } from '@/lib/dicionario';
 import { lerToken, registrarVisita } from '@/lib/coletor';
 import {
   balanco, porDia, gerarAlertas, termometro, resumoProjeto, raioX,
-  analisarLiquidez, analisarDonos, idadeEmDias, fusoDoIdioma,
+  analisarLiquidez, analisarDonos, idadeEmDias, fusoDoIdioma, LIMITE_LIQUIDEZ_CONFIAVEL_USD,
 } from '@/lib/analise';
 import { montarNarrativa } from '@/lib/narrativa';
 import { formatarDinheiro, formatarNumero, formatarDataHora, encurtarEndereco, linkExplorador } from '@/lib/formato';
@@ -156,6 +156,16 @@ export default async function PaginaToken({ params }) {
         <div className="estado">{txt.coletando}</div>
       ) : (
         <>
+          {(() => {
+            const liquidezAtual = liquidez.ultimo ?? liquidez.pontos?.[liquidez.pontos.length - 1]?.v ?? null;
+            return liquidezAtual !== null && liquidezAtual < LIMITE_LIQUIDEZ_CONFIAVEL_USD ? (
+              <section className="aviso-confiabilidade">
+                <strong>{txt.avisoLiquidezBaixaTitulo}</strong>
+                <p>{txt.avisoLiquidezBaixaTexto(formatarDinheiro(liquidezAtual, locale))}</p>
+              </section>
+            ) : null;
+          })()}
+
           <section className={`veredicto nivel-${termo.nivel}`}>
             <div className="termometro" aria-label={`${txt.termometroTitulo}: ${nomesNivel[termo.nivel]}`}>
               <span className="termometro-rotulo">{txt.termometroTitulo}</span>
