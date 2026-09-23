@@ -41,18 +41,31 @@ export async function generateMetadata({ params }) {
   } catch (e) { /* usa o endereco mesmo, sem travar a pagina */ }
 
   const caminho = `${locale}/token/${chain}/${address}`;
+  const descricao = locale === 'en'
+    ? `On-chain buy and sell activity for ${nome} on ${chain === 'ethereum' ? 'Ethereum' : 'Solana'}, explained in plain language.`
+    : `Movimentações de compra e venda do token ${nome} na blockchain ${chain === 'ethereum' ? 'Ethereum' : 'Solana'}, explicadas em linguagem simples.`;
+  const titulo = `${nome} — ${txt.siteNome}`;
+  const url = `${SITE_URL}/${caminho}`;
+
   return {
-    title: `${nome} — ${txt.siteNome}`,
-    description: locale === 'en'
-      ? `On-chain buy and sell activity for ${nome} on ${chain === 'ethereum' ? 'Ethereum' : 'Solana'}, explained in plain language.`
-      : `Movimentações de compra e venda do token ${nome} na blockchain ${chain === 'ethereum' ? 'Ethereum' : 'Solana'}, explicadas em linguagem simples.`,
+    title: titulo,
+    description: descricao,
     alternates: {
-      canonical: `${SITE_URL}/${caminho}`,
+      canonical: url,
       languages: {
         pt: `${SITE_URL}/pt/token/${chain}/${address}`,
         en: `${SITE_URL}/en/token/${chain}/${address}`,
       },
     },
+    openGraph: {
+      title: titulo,
+      description: descricao,
+      url,
+      siteName: txt.siteNome,
+      locale: locale === 'pt' ? 'pt_BR' : 'en_US',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title: titulo, description: descricao },
   };
 }
 
