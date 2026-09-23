@@ -7,13 +7,24 @@ import Anuncio from '@/components/Anuncio';
 export function generateMetadata({ params }) {
   const { locale } = params;
   const txt = t(locale);
+  const titulo = `${txt.siteNome} — ${txt.siteResumo}`;
+  const url = `${SITE_URL}/${locale}`;
   return {
-    title: `${txt.siteNome} — ${txt.siteResumo}`,
+    title: titulo,
     description: txt.buscaAjuda,
     alternates: {
-      canonical: `${SITE_URL}/${locale}`,
+      canonical: url,
       languages: { pt: `${SITE_URL}/pt`, en: `${SITE_URL}/en` },
     },
+    openGraph: {
+      title: titulo,
+      description: txt.buscaAjuda,
+      url,
+      siteName: txt.siteNome,
+      locale: locale === 'pt' ? 'pt_BR' : 'en_US',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title: titulo, description: txt.buscaAjuda },
   };
 }
 
