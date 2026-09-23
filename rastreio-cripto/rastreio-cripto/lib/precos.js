@@ -6,6 +6,20 @@ const BASE = 'https://api.dexscreener.com/latest/dex';
 // Como a DexScreener chama cada rede.
 const REDE = { ethereum: 'ethereum', solana: 'solana' };
 
+// Formato de um endereco de contrato em cada rede -- usado para saber
+// se o termo digitado e um endereco (e nao um nome/sigla).
+const ENDERECO_ETH = /^0x[a-fA-F0-9]{40}$/;
+const ENDERECO_SOLANA = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+function pareceEndereco(termo) {
+  return ENDERECO_ETH.test(termo) || ENDERECO_SOLANA.test(termo);
+}
+
+function mesmoEndereco(chain, a, b) {
+  if (!a || !b) return false;
+  return chain === 'ethereum' ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
 /**
  * Procura tokens por nome, sigla ou endereco.
  * E o que alimenta a caixa de busca do site.
@@ -16,7 +30,18 @@ export async function procurarToken(termo) {
   });
   if (!r.ok) return [];
   const j = await r.json();
-  const pares = j?.pairs || [];
+  let pares = j?.pairs || [];
+
+  // Se a pessoa colou um ENDERECO, o resultado tem que ser so sobre
+  // aquele contrato -- nunca sobre outro token que apenas negocia
+  // CONTRA ele (ex: uma pool "XPTO/PENDLE", onde o PENDLE e so o
+  // par de referencia, nao o token que a pessoa quer ver).
+  if (pareceEndereco(termo)) {
+    pares = pares.filter((p) => {
+      const chain = Object.keys(REDE).find((k) => REDE[k] === p.chainId);
+      return chain && mesmoEndereco(chain, p.baseToken?.address, termo);
+    });
+  }
 
   // Um token aparece em varios pares. Ficamos com o par de maior liquidez.
   const porToken = new Map();
@@ -54,7 +79,17 @@ export async function situacaoDoToken(chain, address) {
     const r = await fetch(`${BASE}/tokens/${address}`, { cache: 'no-store' });
     if (!r.ok) return null;
     const j = await r.json();
-    const pares = (j?.pairs || []).filter((p) => p.chainId === REDE[chain]);
+
+    // CRITICO: a DexScreener devolve QUALQUER par que envolva este
+    // endereco -- inclusive pares onde ele e so a "moeda de troco" de
+    // OUTRO token (ex: uma pool "sPENDLE/PENDLE", onde o par principal
+    // e o sPENDLE). Sem este filtro, se essa pool cruzada tiver mais
+    // liquidez que os pares diretos do nosso token, o site acaba
+    // mostrando o nome, o simbolo e o preco do OUTRO token. Por isso
+    // exigimos que o nosso endereco seja exatamente o baseToken do par.
+    const pares = (j?.pairs || []).filter(
+      (p) => p.chainId === REDE[chain] && mesmoEndereco(chain, p.baseToken?.address, address)
+    );
     if (!pares.length) return null;
 
     // Somamos a liquidez de todos os pares, e usamos o maior par como preco.
