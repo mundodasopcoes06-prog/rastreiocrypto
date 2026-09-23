@@ -5,20 +5,31 @@ import Busca from '@/components/Busca';
 import Anuncio from '@/components/Anuncio';
 
 // Esta e a pagina de verdade da raiz "/" do site (sem redirecionamento
-// e sem reescrita nenhuma). Ela mostra o mesmo conteudo da home em
+// e sem reescrita nenhuma). Mostra o mesmo conteudo da home em
 // portugues, direto, para que qualquer visitante -- inclusive o robo
 // do Google -- receba uma pagina completa (200) assim que acessa "/".
 const locale = 'pt';
 
 export function generateMetadata() {
   const txt = t(locale);
+  const titulo = `${txt.siteNome} — ${txt.siteResumo}`;
+  const url = `${SITE_URL}/${locale}`;
   return {
-    title: `${txt.siteNome} — ${txt.siteResumo}`,
+    title: titulo,
     description: txt.buscaAjuda,
     alternates: {
-      canonical: `${SITE_URL}/${locale}`,
+      canonical: url,
       languages: { pt: `${SITE_URL}/pt`, en: `${SITE_URL}/en` },
     },
+    openGraph: {
+      title: titulo,
+      description: txt.buscaAjuda,
+      url,
+      siteName: txt.siteNome,
+      locale: 'pt_BR',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title: titulo, description: txt.buscaAjuda },
   };
 }
 
