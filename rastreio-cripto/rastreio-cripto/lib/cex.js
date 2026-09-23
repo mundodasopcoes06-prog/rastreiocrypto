@@ -81,9 +81,16 @@ async function buscarFluxoBinance(par) {
  * Retorna:
  *   null                          -> erro ao consultar (tenta de novo depois)
  *   { listado: false, ... }       -> confirmado que nao esta nas corretoras verificadas
- *   { listado: true, corretoras, variacao24h } -> encontrado
+ *   { listado: true, corretoras, variacao24h, simboloDivergente } -> encontrado
+ *
+ * simboloOnChain: o simbolo que o proprio site leu da blockchain para
+ * este contrato (ex: "sPENDLE"). Serve para detectar quando o CoinGecko
+ * devolve dados de um token DIFERENTE (ex: o "PENDLE" comum) associado
+ * ao mesmo registro -- coisa que ja vimos acontecer com tokens que tem
+ * uma versao "empacotada" ou "investida" (wrapped/staked). Nesses casos
+ * avisamos, em vez de apresentar como se fosse o preco do proprio token.
  */
-export async function lerCorretoras(chain, address) {
+export async function lerCorretoras(chain, address, simboloOnChain = null) {
   try {
     const dados = await buscarCoinGecko(chain, address);
     if (!dados) return { listado: false, corretoras: [], variacao24h: null };
@@ -99,7 +106,21 @@ export async function lerCorretoras(chain, address) {
       } catch (e) { /* o fluxo e um complemento; sem ele, o resto continua valendo */ }
     }
 
-    return { listado: corretoras.length > 0, corretoras, variacao24h };
+    // Se o simbolo que a CoinGecko conhece para este endereco for
+    // diferente do que a propria blockchain nos deu, os dois provavelmente
+    // nao sao a mesma coisa (ex: um token "staked" cujo contrato aparece
+    // agrupado com o token original na CoinGecko).
+    const simboloCoinGecko = dados.symbol ? dados.symbol.toUpperCase() : null;
+    const simboloDivergente =
+      !!simboloOnChain && !!simboloCoinGecko && simboloOnChain.toUpperCase() !== simboloCoinGecko;
+
+    return {
+      listado: corretoras.length > 0,
+      corretoras,
+      variacao24h,
+      simboloCoinGecko,
+      simboloDivergente,
+    };
   } catch (e) {
     console.warn('lerCorretoras:', e.message);
     return null;
