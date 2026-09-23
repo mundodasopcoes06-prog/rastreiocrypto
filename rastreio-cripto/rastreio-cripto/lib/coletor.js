@@ -246,7 +246,8 @@ export async function coletar(chain, address) {
   const cexVelho =
     !token.cex_data_at || Date.now() - new Date(token.cex_data_at).getTime() > 30 * 60 * 1000;
   if (cexVelho) {
-    const cex = await lerCorretoras(chain, addr);
+    const simboloAtual = atualizacaoToken.symbol || token.symbol || null;
+    const cex = await lerCorretoras(chain, addr, simboloAtual);
     if (cex) {
       atualizacaoToken.cex_data = cex;
       atualizacaoToken.cex_data_at = new Date().toISOString();
