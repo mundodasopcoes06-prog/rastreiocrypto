@@ -31,6 +31,12 @@ export default function Corretoras({ locale, cex }) {
       <h2>{txt.cexTitulo}</h2>
       <p className="sub">{txt.cexSub}</p>
 
+      {cex.simboloDivergente && (
+        <p className="cex-divergencia">
+          {txt.cexSimboloDivergente(cex.simboloCoinGecko)}
+        </p>
+      )}
+
       {v !== null && v !== undefined && (
         <p className={`cex-variacao ${v >= 0 ? 'entrada' : 'saida'}`}>
           {v >= 0 ? txt.cexVariacaoAlta(v.toFixed(1)) : txt.cexVariacaoBaixa(Math.abs(v).toFixed(1))}
