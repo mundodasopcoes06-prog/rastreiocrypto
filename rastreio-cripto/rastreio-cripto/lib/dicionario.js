@@ -166,6 +166,10 @@ const textos = {
     motivoTransferencia: 'passagem direta entre carteiras; não foi compra nem venda na bolsa',
     fuso: 'horário de Brasília',
 
+    // ---- confiabilidade do preco (liquidez muito baixa) ----
+    avisoLiquidezBaixaTitulo: 'Atenção: liquidez muito baixa neste token',
+    avisoLiquidezBaixaTexto: (v) => `A pool de negociação deste token tem apenas ${v} de liquidez agora. Com tão pouco dinheiro disponível, uma única negociação grande pode distorcer bastante o "preço de tabela" — e todo valor em dólar nesta página é calculado a partir desse preço. Trate os valores abaixo com cautela extra; se houver uma seção "Nas corretoras" nesta página, ela pode ser uma referência mais confiável.`,
+
     // ---- corretoras centralizadas (CEX) ----
     cexTitulo: 'Nas corretoras',
     cexSub: 'Preço e volume nas maiores corretoras centralizadas. É um mundo separado da blockchain: aqui não é possível saber quais carteiras negociaram, só o total movimentado.',
@@ -178,6 +182,7 @@ const textos = {
     cexFluxo: (c, v) => `Nas últimas 24h, ordens a mercado compraram ${c} e venderam ${v} nesta corretora.`,
     cexSemFluxo: 'Esta corretora não divulga publicamente a divisão entre compra e venda — só o volume total.',
     cexAviso: 'Preço e volume vêm das próprias corretoras (via CoinGecko, confirmado pelo endereço do contrato — não pelo nome, para evitar confusão com tokens clonados). Diferente do restante da página, aqui nunca é possível saber quais carteiras negociaram.',
+    cexSimboloDivergente: (simbolo) => `Atenção: as corretoras abaixo negociam ${simbolo}, não necessariamente o mesmo token desta página. Pode ser a versão "normal" de um token que aqui aparece de forma diferente (empacotada, investida/staked, etc). Use como referência de contexto, não como o preço exato deste contrato.`,
 
     // ---- pagina de privacidade ----
     privTitulo: 'Privacidade e cookies',
@@ -358,6 +363,10 @@ const textos = {
     motivoTransferencia: 'direct transfer between wallets; not a buy or sell on an exchange',
     fuso: 'UTC',
 
+    // ---- price reliability (very low liquidity) ----
+    avisoLiquidezBaixaTitulo: 'Warning: very low liquidity for this token',
+    avisoLiquidezBaixaTexto: (v) => `This token's trading pool currently has only ${v} in liquidity. With so little money available, a single large trade can badly distort the "quoted price" — and every dollar value on this page is calculated from that price. Treat the figures below with extra caution; if this page has an "On exchanges" section, it may be a more reliable reference.`,
+
     // ---- centralised exchanges (CEX) ----
     cexTitulo: 'On exchanges',
     cexSub: 'Price and volume on the largest centralised exchanges. This is a separate world from the blockchain: here it is never possible to know which wallets traded, only the total moved.',
@@ -370,6 +379,7 @@ const textos = {
     cexFluxo: (c, v) => `Over the last 24h, market orders bought ${c} and sold ${v} on this exchange.`,
     cexSemFluxo: 'This exchange does not publicly break down buys vs sells — only total volume.',
     cexAviso: 'Price and volume come from the exchanges themselves (via CoinGecko, confirmed by contract address — not by name, to avoid confusion with cloned tokens). Unlike the rest of this page, it is never possible here to know which wallets traded.',
+    cexSimboloDivergente: (simbolo) => `Note: the exchanges below trade ${simbolo}, which may not be the exact same token as this page. This can happen with a token's "plain" version when this page is about a wrapped or staked form of it. Use it as context, not as this exact contract's precise price.`,
 
     // ---- privacy page ----
     privTitulo: 'Privacy and cookies',
@@ -465,6 +475,10 @@ const alertas = {
       titulo: 'Poucas carteiras sem identificação guardam muito',
       texto: 'Carteiras sem identificação entre as 10 maiores guardam {pct}% de todos os tokens. Se poucas delas venderem juntas, o preço pode desabar. Parte disso pode ser pool ou cofre do projeto que não conhecemos.',
     },
+    liquidez_baixa_confianca: {
+      titulo: 'Liquidez baixa demais para confiar no preço',
+      texto: 'A liquidez atual é de apenas {liquidez}. Nesse patamar, um único negócio grande pode distorcer bastante o preço de referência, inflando ou reduzindo todos os valores em dólar desta página.',
+    },
   },
   en: {
     dev_vendendo: {
@@ -535,6 +549,10 @@ const alertas = {
       titulo: 'A few unidentified wallets hold a lot',
       texto: 'Unidentified wallets among the top 10 hold {pct}% of all tokens. If a few of them sell together, the price can crash. Part of this may be a pool or project treasury we do not know about.',
     },
+    liquidez_baixa_confianca: {
+      titulo: 'Liquidity too low to trust the price',
+      texto: 'Current liquidity is only {liquidez}. At this level, a single large trade can badly distort the reference price, inflating or shrinking every dollar figure on this page.',
+    },
   },
 };
 
@@ -558,6 +576,7 @@ const motivosAlerta = {
     emissao_aberta: 'lido diretamente do contrato.',
     congelamento_aberto: 'lido diretamente do contrato.',
     token_novo: 'data do primeiro par de negociação registrado.',
+    liquidez_baixa_confianca: 'a liquidez é medida diretamente na pool; o que é dedução é o quanto isso compromete os preços calculados.',
   },
   en: {
     dev_vendendo: 'the wallet\'s link to the project is inferred: it received tokens from the contract creator.',
@@ -577,6 +596,7 @@ const motivosAlerta = {
     emissao_aberta: 'read directly from the contract.',
     congelamento_aberto: 'read directly from the contract.',
     token_novo: 'date of the first recorded trading pair.',
+    liquidez_baixa_confianca: 'liquidity is measured directly from the pool; how much it undermines the calculated prices is inference.',
   },
 };
 
