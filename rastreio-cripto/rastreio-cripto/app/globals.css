@@ -575,3 +575,27 @@ ul.cex-lista { list-style: none; margin: 0; padding: 0; }
 .cex-vol { font-family: var(--mono); font-size: .82rem; color: var(--tinta-fraca); }
 .cex-linha a { margin-left: auto; font-size: .82rem; }
 .cex-fluxo { margin: .3rem 0 0; font-size: .85rem; color: var(--tinta-fraca); }
+/* aviso de confiabilidade do preco (liquidez muito baixa) */
+.aviso-confiabilidade {
+  background: var(--atencao-bg);
+  border: 1px solid var(--saida);
+  border-left: 4px solid var(--saida);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.aviso-confiabilidade strong {
+  display: block;
+  color: var(--saida);
+  font-size: 1rem;
+  margin-bottom: .4rem;
+}
+.aviso-confiabilidade p { margin: 0; font-size: .92rem; line-height: 1.5; }
+
+/* aviso de simbolo divergente na secao "Nas corretoras" */
+.cex-divergencia {
+  background: var(--atencao-bg);
+  border-left: 3px solid var(--atencao);
+  padding: .7rem .9rem;
+  margin: 0 0 1rem;
+  font-size: .88rem;
+}
