@@ -11,6 +11,11 @@
 export const LIMITE_BALEIA_USD = 10000;
 export const LIMITE_BALEIA_PCT_SUPPLY = 0.1; // 0,1% do total emitido
 
+// Abaixo disso, a liquidez e tao pequena que o preco "de tabela" da pool
+// pode ter sido distorcido por uma unica negociacao grande -- vale para
+// QUALQUER token, nao so os pequenos. Serve de disjuntor geral.
+export const LIMITE_LIQUIDEZ_CONFIAVEL_USD = 50000;
+
 /**
  * Classifica uma transferencia.
  * rotulos: Map com chave 'chain:endereco' -> { label, category }
@@ -550,6 +555,17 @@ export function gerarAlertas({ token, transferencias, carteirasProjeto, conhecid
     alertas.push({
       codigo: 'liquidez_gradual', nivel: 'medio', fato: false,
       valores: { pct: Math.abs(liquidez.variacao).toFixed(0), quedas: liquidez.quedas },
+    });
+  }
+
+  // Liquidez baixa demais para confiar no preco. Vale para qualquer token:
+  // numa pool pequena, uma unica negociacao grande pode distorcer bastante
+  // o "preco de tabela", inflando todos os valores em dolar da pagina.
+  const liquidezAtual = liquidez.ultimo ?? liquidez.pontos?.[liquidez.pontos.length - 1]?.v ?? null;
+  if (liquidezAtual !== null && liquidezAtual < LIMITE_LIQUIDEZ_CONFIAVEL_USD) {
+    alertas.push({
+      codigo: 'liquidez_baixa_confianca', nivel: 'alto', fato: true,
+      valores: { liquidez: usdTxt(liquidezAtual) },
     });
   }
 
