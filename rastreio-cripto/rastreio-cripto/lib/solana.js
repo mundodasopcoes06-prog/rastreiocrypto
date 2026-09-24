@@ -28,17 +28,42 @@ async function rpc(metodo, params) {
  *
  * ATENCAO DE CUSTO: cada chamada aqui consome 100 creditos do plano gratuito
  * (1.000.000 por mes = cerca de 10.000 chamadas). Por isso o site so atualiza
- * os tokens que alguem olhou recentemente.
+ * os tokens que alguem olhou recentemente, e por isso o limite de paginas
+ * abaixo e mais conservador que o do lado Ethereum.
+ *
+ * Mesmo motivo do lado Ethereum: sem rotina automatica, um token bem
+ * negociado pode ter mais de 100 transacoes entre duas visitas. Viramos
+ * pagina (parametro "before" da Helius) ate reencontrar a ultima leitura,
+ * respeitando um teto de paginas para nao gastar credito demais numa
+ * unica visita.
  */
-export async function transferenciasSolana(mint, quantidade = 100) {
-  const url = `https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${chave()}&limit=${Math.min(quantidade, 100)}`;
-  const r = await fetch(url, { cache: 'no-store' });
-  if (!r.ok) throw new Error(`Helius respondeu ${r.status}`);
-  const lista = await r.json();
-  if (!Array.isArray(lista)) return [];
+export async function transferenciasSolana(mint, { desde = null, limite = null } = {}) {
+  const TAMANHO_PAGINA = 100; // maximo aceito pela Helius por chamada
+  const MAX_PAGINAS = 3; // ate 300 transacoes (300 creditos) por visita
+
+  let brutas = [];
+  let antesDe = null;
+  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
+    const url = `https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${chave()}&limit=${TAMANHO_PAGINA}`
+      + (antesDe ? `&before=${antesDe}` : '');
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`Helius respondeu ${r.status}`);
+    const lista = await r.json();
+    if (!Array.isArray(lista) || !lista.length) break;
+
+    brutas = brutas.concat(lista);
+    const ultima = lista[lista.length - 1];
+    const maisAntigaMs = (ultima.timestamp || 0) * 1000;
+
+    const alcancouDesde = desde && maisAntigaMs <= new Date(desde).getTime();
+    const alcancouLimite = limite && maisAntigaMs < limite;
+    if (alcancouDesde || alcancouLimite || lista.length < TAMANHO_PAGINA) break;
+
+    antesDe = ultima.signature;
+  }
 
   const saida = [];
-  for (const tx of lista) {
+  for (const tx of brutas) {
     const transferencias = tx.tokenTransfers || [];
     for (const tt of transferencias) {
       if (tt.mint !== mint) continue;
