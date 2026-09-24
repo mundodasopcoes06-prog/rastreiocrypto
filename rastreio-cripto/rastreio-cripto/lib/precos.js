@@ -6,6 +6,17 @@ const BASE = 'https://api.dexscreener.com/latest/dex';
 // Como a DexScreener chama cada rede.
 const REDE = { ethereum: 'ethereum', solana: 'solana' };
 
+// Corretoras descentralizadas (DEX) grandes e estabelecidas, pelo
+// identificador que a DexScreener usa.
+const DEX_CONHECIDAS = new Set([
+  // Ethereum
+  'uniswap', 'sushiswap', 'pancakeswap', 'curve', 'balancer', 'maverick',
+  'fraxswap', 'shibaswap', 'defiswap', 'solidlyv3',
+  // Solana
+  'raydium', 'orca', 'meteora', 'pumpswap', 'pumpfun', 'lifinity',
+  'phoenix', 'fluxbeam', 'openbook',
+]);
+
 // Formato de um endereco de contrato em cada rede -- usado para saber
 // se o termo digitado e um endereco (e nao um nome/sigla).
 const ENDERECO_ETH = /^0x[a-fA-F0-9]{40}$/;
@@ -87,10 +98,36 @@ export async function situacaoDoToken(chain, address) {
     // liquidez que os pares diretos do nosso token, o site acaba
     // mostrando o nome, o simbolo e o preco do OUTRO token. Por isso
     // exigimos que o nosso endereco seja exatamente o baseToken do par.
-    const pares = (j?.pairs || []).filter(
+    let pares = (j?.pairs || []).filter(
       (p) => p.chainId === REDE[chain] && mesmoEndereco(chain, p.baseToken?.address, address)
     );
     if (!pares.length) return null;
+
+    // Preferimos pools de DEX conhecidas e estabelecidas. Pools de DEX
+    // obscuras ou recem-criadas sao onde precos quebrados mais aparecem.
+    // Se o token so existir em DEX desconhecida (comum em meme coins),
+    // usamos o que houver -- a validacao cruzada cuida do resto.
+    const conhecidas = pares.filter((p) => DEX_CONHECIDAS.has(String(p.dexId || '').toLowerCase()));
+    if (conhecidas.length) pares = conhecidas;
+
+    // Uma UNICA pool pode ter o preco completamente quebrado (ex: pool
+    // nova e desbalanceada, ou com pouquissima liquidez de verdade fazendo
+    // a matematica automatica disparar) -- e ainda assim reportar bastante
+    // liquidez, fazendo o site confiar nela. Para pegar isso, comparamos
+    // o preco de cada pool com a MEDIANA de todas as pools do mesmo token:
+    // quem destoar demais (mais de 5x pra cima ou pra baixo) e descartado
+    // por inteiro, sem entrar nem no preco nem nas somas de liquidez/volume.
+    const precos = pares.map((p) => Number(p.priceUsd)).filter((n) => n > 0).sort((a, b) => a - b);
+    if (precos.length > 1) {
+      const mediana = precos[Math.floor(precos.length / 2)];
+      const saneados = pares.filter((p) => {
+        const preco = Number(p.priceUsd);
+        if (!preco) return false;
+        const razao = preco / mediana;
+        return razao > 0.2 && razao < 5;
+      });
+      if (saneados.length) pares = saneados;
+    }
 
     // Somamos a liquidez de todos os pares, e usamos o maior par como preco.
     const maior = pares.reduce((a, b) =>
