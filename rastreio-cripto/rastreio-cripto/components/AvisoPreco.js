@@ -19,6 +19,7 @@ export default function AvisoPreco({ locale, token }) {
     divergente: 'erro',
     salto_suspeito: 'erro',
     sem_preco: 'erro',
+    mercado_implausivel: 'erro',
   }[status] || 'atencao';
 
   return (
