@@ -17,6 +17,7 @@ import RaioX from '@/components/RaioX';
 import Liquidez from '@/components/Liquidez';
 import Donos from '@/components/Donos';
 import Corretoras from '@/components/Corretoras';
+import AvisoPreco from '@/components/AvisoPreco';
 import Anuncio from '@/components/Anuncio';
 import { SITE_URL } from '@/lib/site';
 import { db } from '@/lib/supabase';
@@ -166,6 +167,8 @@ export default async function PaginaToken({ params }) {
             ) : null;
           })()}
 
+          <AvisoPreco locale={locale} token={token} />
+
           <section className={`veredicto nivel-${termo.nivel}`}>
             <div className="termometro" aria-label={`${txt.termometroTitulo}: ${nomesNivel[termo.nivel]}`}>
               <span className="termometro-rotulo">{txt.termometroTitulo}</span>
@@ -205,7 +208,7 @@ export default async function PaginaToken({ params }) {
             <div className="ficha" style={{ marginTop: '1rem' }}>
               <div>
                 <span>{txt.fichaPreco}</span>
-                <strong>{formatarDinheiro(ultimoSnapshot?.price_usd, locale)}</strong>
+                <strong>{formatarDinheiro(token.preco_atual, locale)}</strong>
               </div>
               <div>
                 <span>{txt.fichaLiquidez}</span>
