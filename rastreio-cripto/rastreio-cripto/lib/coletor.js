@@ -88,19 +88,6 @@ export async function coletar(chain, address) {
     cex.simboloDivergente = cex.simboloCoinGecko.toUpperCase() !== simboloOnChain.toUpperCase();
   }
 
-  // Nenhum preco e aceito sem ser conferido em outra fonte.
-  const validacao = validarPreco({
-    dex: situacao?.price_usd ?? null,
-    gecko: gecko?.preco ?? null,
-    cex: cex?.precoReferencia
-      ? { preco: cex.precoReferencia, confiavel: cex.listado && !cex.simboloDivergente }
-      : null,
-    anterior: token.preco_validado
-      ? { preco: Number(token.preco_validado), em: token.preco_validado_at }
-      : null,
-  });
-  const liquidezValidada = validarLiquidez(situacao?.liquidity_usd ?? null, gecko?.liquidez ?? null);
-
   // ---- 2. Dados do proprio contrato ----
   const atualizacaoToken = {
     last_ingest_at: new Date().toISOString(),
@@ -195,6 +182,24 @@ export async function coletar(chain, address) {
     });
   }
   const supply = atualizacaoToken.total_supply ?? token.total_supply ?? null;
+  // Nenhum preco e aceito sem ser conferido em outra fonte.
+  // Roda AQUI (e nao logo apos buscar as fontes) porque so agora o total
+  // emitido e conhecido -- inclusive na primeira leitura de um token novo,
+  // que e justamente o caso mais arriscado.
+  const liquidezValidada = validarLiquidez(situacao?.liquidity_usd ?? null, gecko?.liquidez ?? null);
+  const validacao = validarPreco({
+    dex: situacao?.price_usd ?? null,
+    gecko: gecko?.preco ?? null,
+    cex: cex?.precoReferencia
+      ? { preco: cex.precoReferencia, confiavel: cex.listado && !cex.simboloDivergente }
+      : null,
+    anterior: token.preco_validado
+      ? { preco: Number(token.preco_validado), em: token.preco_validado_at }
+      : null,
+    supply: Number(supply) || null,
+    liquidez: liquidezValidada,
+  });
+
   // So o preco VALIDADO entra nos calculos. Se nao deu pra confirmar,
   // fica null e os valores em dolar simplesmente nao sao mostrados.
   const preco = validacao.preco;
@@ -337,9 +342,13 @@ export async function lerToken(chain, address) {
   // Valores em dolar sao recalculados AGORA, com o ultimo preco validado.
   // Assim, se um preco errado tiver sido gravado no passado, ele nao
   // contamina mais nada: o banco guarda so as quantidades de tokens.
-  const precoAtual = token.preco_status === 'divergente' || token.preco_status === 'salto_suspeito'
-    ? null
-    : Number(token.preco_validado) || null;
+  // So mostramos preco se a leitura MAIS RECENTE o aprovou. Qualquer outro
+  // status (divergente, salto, mercado impossivel, sem preco) esconde os
+  // valores em dolar -- nunca caimos de volta num preco antigo guardado.
+  const STATUS_APROVADOS = ['confirmado', 'corrigido', 'fonte_unica'];
+  const precoAtual = STATUS_APROVADOS.includes(token.preco_status)
+    ? Number(token.preco_validado) || null
+    : null;
   const supply = Number(token.total_supply) || null;
   const recalculadas = (transferencias || []).map((t) => ({
     ...t,
