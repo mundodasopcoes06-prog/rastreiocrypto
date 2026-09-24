@@ -36,20 +36,44 @@ export function respirar(ms = 260) {
 /**
  * Ultimas transferencias de um token ERC-20.
  * Devolve ja no formato padrao que o resto do site entende.
+ *
+ * O site so le a blockchain quando alguem abre a pagina (sem rotina
+ * automatica). Para um token bem negociado, isso significa que, entre
+ * duas visitas, podem ter acontecido MAIS de 200 transferencias -- e
+ * pegar so as 200 mais recentes deixaria um buraco silencioso no meio
+ * do periodo, fazendo o balanco de 24h parecer bem menor do que e de
+ * verdade. Por isso viramos paginas pra tras ate reencontrar a ultima
+ * leitura (parametro "desde"), ate um limite de seguranca por visita.
  */
-export async function transferenciasEthereum(contrato, quantidade = 200) {
-  const bruto = await chamar({
-    module: 'account',
-    action: 'tokentx',
-    contractaddress: contrato,
-    page: 1,
-    offset: Math.min(quantidade, 1000),
-    sort: 'desc',
-  });
+export async function transferenciasEthereum(contrato, { desde = null, limite = null } = {}) {
+  const TAMANHO_PAGINA = 1000; // maximo aceito pela Etherscan por pagina
+  const MAX_PAGINAS = 5; // ate 5.000 registros numa unica visita
 
-  if (!Array.isArray(bruto)) return [];
+  let tudo = [];
+  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
+    const bruto = await chamar({
+      module: 'account',
+      action: 'tokentx',
+      contractaddress: contrato,
+      page: pagina,
+      offset: TAMANHO_PAGINA,
+      sort: 'desc',
+    });
+    if (!Array.isArray(bruto) || !bruto.length) break;
+    tudo = tudo.concat(bruto);
 
-  return bruto.map((t) => {
+    const maisAntigoMs = Number(bruto[bruto.length - 1].timeStamp) * 1000;
+    // Para de virar pagina quando: ja alcancou a ultima leitura anterior,
+    // ja passou dos 31 dias que guardamos, ou a pagina veio incompleta
+    // (significa que acabou o historico do contrato).
+    const alcancouDesde = desde && maisAntigoMs <= new Date(desde).getTime();
+    const alcancouLimite = limite && maisAntigoMs < limite;
+    if (alcancouDesde || alcancouLimite || bruto.length < TAMANHO_PAGINA) break;
+
+    await respirar();
+  }
+
+  return tudo.map((t) => {
     const casas = parseInt(t.tokenDecimal || '18', 10);
     const qtd = Number(t.value) / Math.pow(10, casas);
     return {
