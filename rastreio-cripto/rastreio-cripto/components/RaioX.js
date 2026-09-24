@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { t } from '@/lib/dicionario';
 import { formatarDinheiro } from '@/lib/formato';
 
+// Corretoras ficam FORA desta tabela: saque e deposito nao sao compra nem
+// venda. Elas aparecem num quadro proprio logo abaixo.
 const LINHAS = [
-  ['corretoras', 'catCorretoras', 'catCorretorasAjuda'],
   ['projeto', 'catProjeto', 'catProjetoAjuda'],
   ['grandes', 'catGrandes', 'catGrandesAjuda'],
   ['demais', 'catDemais', 'catDemaisAjuda'],
@@ -17,6 +18,8 @@ export default function RaioX({ locale, periodos }) {
   const r = periodos[aba];
   const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '30d': txt.periodo30d };
   const vazio = LINHAS.every(([k]) => r[k].nCompras + r[k].nVendas === 0);
+  const c = r.corretoras;
+  const temCorretoras = c && c.nCompras + c.nVendas > 0;
 
   // Maior valor da tabela: define o tamanho das barrinhas.
   const maior = Math.max(1, ...LINHAS.flatMap(([k]) => [r[k].compras, r[k].vendas]));
@@ -73,6 +76,17 @@ export default function RaioX({ locale, periodos }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+      {temCorretoras && (
+        <div className="raio-corretoras">
+          <strong>{txt.raioCorretorasTitulo}</strong>
+          <p>
+            {txt.raioCorretorasTexto(
+              formatarDinheiro(c.compras, locale), c.nCompras,
+              formatarDinheiro(c.vendas, locale), c.nVendas
+            )}
+          </p>
         </div>
       )}
     </section>
