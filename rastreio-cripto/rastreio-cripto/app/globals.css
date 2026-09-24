@@ -599,3 +599,47 @@ ul.cex-lista { list-style: none; margin: 0; padding: 0; }
   margin: 0 0 1rem;
   font-size: .88rem;
 }
+
+/* precisao na busca: sigla duplicada, endereco visivel, liquidez baixa */
+.aviso-busca {
+  background: var(--atencao-bg);
+  border-left: 3px solid var(--atencao);
+  padding: .7rem .9rem;
+  margin: .75rem 0;
+  font-size: .87rem;
+}
+.resultado .endereco-curto {
+  font-family: var(--mono);
+  font-size: .78rem;
+  color: var(--tinta-fraca);
+  white-space: nowrap;
+}
+.selo-liquidez-baixa {
+  display: block;
+  margin-top: .15rem;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--saida);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+/* validacao do preco (3 fontes) */
+.aviso-preco {
+  border: 1px solid var(--linha);
+  border-left: 4px solid var(--estrutura);
+  background: var(--papel);
+  padding: .9rem 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.aviso-preco strong { display: block; font-size: .95rem; margin-bottom: .3rem; }
+.aviso-preco p { margin: 0; font-size: .88rem; line-height: 1.5; }
+.aviso-preco details { margin-top: .5rem; font-size: .82rem; }
+.aviso-preco summary { cursor: pointer; color: var(--tinta-fraca); }
+.aviso-preco ul { margin: .4rem 0 0; padding-left: 1.1rem; font-family: var(--mono); }
+.aviso-preco-ok { border-left-color: var(--entrada); }
+.aviso-preco-ok strong { color: var(--entrada); }
+.aviso-preco-atencao { border-left-color: var(--atencao); background: var(--atencao-bg); }
+.aviso-preco-atencao strong { color: var(--atencao); }
+.aviso-preco-erro { border-left-color: var(--saida); background: var(--atencao-bg); }
+.aviso-preco-erro strong { color: var(--saida); }
