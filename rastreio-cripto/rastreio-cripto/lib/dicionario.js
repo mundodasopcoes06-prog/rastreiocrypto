@@ -16,6 +16,8 @@ const textos = {
     buscando: 'Procurando…',
     semResultado: 'Nada encontrado com esse nome. Tente a sigla exata ou cole o endereço do contrato.',
     resultadosTitulo: 'Encontramos estes tokens',
+    buscaSiglaDuplicada: 'Atenção: mais de um resultado usa a mesma sigla. Cópias de tokens conhecidos costumam ter liquidez muito menor — confira o endereço do contrato antes de escolher.',
+    buscaLiquidezBaixa: 'liquidez baixa',
     redeEthereum: 'Ethereum',
     redeSolana: 'Solana',
 
@@ -170,6 +172,27 @@ const textos = {
     avisoLiquidezBaixaTitulo: 'Atenção: liquidez muito baixa neste token',
     avisoLiquidezBaixaTexto: (v) => `A pool de negociação deste token tem apenas ${v} de liquidez agora. Com tão pouco dinheiro disponível, uma única negociação grande pode distorcer bastante o "preço de tabela" — e todo valor em dólar nesta página é calculado a partir desse preço. Trate os valores abaixo com cautela extra; se houver uma seção "Nas corretoras" nesta página, ela pode ser uma referência mais confiável.`,
 
+    // ---- validacao do preco (3 fontes) ----
+    precoStatusTitulo: {
+      confirmado: 'Preço confirmado em fontes independentes',
+      corrigido: 'Preço corrigido pela referência das corretoras',
+      fonte_unica: 'Preço de uma única fonte',
+      divergente: 'Preço não confirmado: as fontes discordam',
+      salto_suspeito: 'Preço rejeitado: salto suspeito',
+      sem_preco: 'Preço indisponível',
+    },
+    precoStatusTexto: {
+      confirmado: (n) => `O preço usado nesta página foi conferido e bate em ${n} fontes independentes.`,
+      corrigido: () => 'Uma fonte on-chain trouxe um preço fora da realidade. Descartamos esse valor e usamos o preço das corretoras, que movimentam muito mais dinheiro e são mais difíceis de distorcer.',
+      fonte_unica: () => 'Só uma fonte respondeu agora, então não conseguimos confirmar o preço em outro lugar. Trate os valores em dólar com cautela.',
+      divergente: () => 'As fontes on-chain informam preços muito diferentes e o token não está em corretoras para desempatar. Para não mostrar um número errado, os valores em dólar foram ocultados. As quantidades de tokens continuam corretas.',
+      salto_suspeito: () => 'O preço mudou mais de 10 vezes desde a última leitura sem confirmação independente. Os valores em dólar foram ocultados até que o preço seja confirmado. As quantidades de tokens continuam corretas.',
+      sem_preco: () => 'Nenhuma fonte informou preço para este token agora. As quantidades de tokens continuam corretas.',
+    },
+    precoFontesVer: 'Ver o preço em cada fonte',
+    precoFonteCorretoras: 'Corretoras (CoinGecko)',
+    precoFonteSemDado: 'sem dado',
+
     // ---- corretoras centralizadas (CEX) ----
     cexTitulo: 'Nas corretoras',
     cexSub: 'Preço e volume nas maiores corretoras centralizadas. É um mundo separado da blockchain: aqui não é possível saber quais carteiras negociaram, só o total movimentado.',
@@ -213,6 +236,8 @@ const textos = {
     buscando: 'Searching…',
     semResultado: 'Nothing found with that name. Try the exact ticker or paste the contract address.',
     resultadosTitulo: 'We found these tokens',
+    buscaSiglaDuplicada: 'Warning: more than one result uses the same ticker. Copies of known tokens usually have much lower liquidity — check the contract address before choosing.',
+    buscaLiquidezBaixa: 'low liquidity',
     redeEthereum: 'Ethereum',
     redeSolana: 'Solana',
 
@@ -366,6 +391,27 @@ const textos = {
     // ---- price reliability (very low liquidity) ----
     avisoLiquidezBaixaTitulo: 'Warning: very low liquidity for this token',
     avisoLiquidezBaixaTexto: (v) => `This token's trading pool currently has only ${v} in liquidity. With so little money available, a single large trade can badly distort the "quoted price" — and every dollar value on this page is calculated from that price. Treat the figures below with extra caution; if this page has an "On exchanges" section, it may be a more reliable reference.`,
+
+    // ---- price validation (3 sources) ----
+    precoStatusTitulo: {
+      confirmado: 'Price confirmed by independent sources',
+      corrigido: 'Price corrected using the exchange reference',
+      fonte_unica: 'Price from a single source',
+      divergente: 'Price not confirmed: sources disagree',
+      salto_suspeito: 'Price rejected: suspicious jump',
+      sem_preco: 'Price unavailable',
+    },
+    precoStatusTexto: {
+      confirmado: (n) => `The price used on this page was checked and matches across ${n} independent sources.`,
+      corrigido: () => 'One on-chain source returned an unrealistic price. We discarded it and used the exchange price, which moves far more money and is much harder to distort.',
+      fonte_unica: () => 'Only one source responded right now, so we could not confirm the price elsewhere. Treat dollar values with caution.',
+      divergente: () => 'On-chain sources report very different prices and the token is not on exchanges to break the tie. To avoid showing a wrong number, dollar values are hidden. Token amounts remain correct.',
+      salto_suspeito: () => 'The price moved more than 10x since the last read without independent confirmation. Dollar values are hidden until the price is confirmed. Token amounts remain correct.',
+      sem_preco: () => 'No source reported a price for this token right now. Token amounts remain correct.',
+    },
+    precoFontesVer: 'See the price from each source',
+    precoFonteCorretoras: 'Exchanges (CoinGecko)',
+    precoFonteSemDado: 'no data',
 
     // ---- centralised exchanges (CEX) ----
     cexTitulo: 'On exchanges',
