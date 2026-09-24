@@ -125,9 +125,12 @@ export async function coletar(chain, address) {
   }
 
   // ---- 3. Movimentos ----
+  // "limite" e usado tanto para paginar pra tras (nao adianta buscar
+  // mais longe do que guardamos) quanto para filtrar o resultado final.
+  const limite = Date.now() - 31 * 86400000;
   let brutas = [];
   if (chain === 'ethereum') {
-    brutas = await transferenciasEthereum(addr, 200);
+    brutas = await transferenciasEthereum(addr, { desde: token.last_ingest_at, limite });
     if (brutas.length) {
       casas = brutas[0].decimals ?? casas;
       atualizacaoToken.decimals = casas;
@@ -139,11 +142,9 @@ export async function coletar(chain, address) {
       if (sup) atualizacaoToken.total_supply = sup;
     }
   } else {
-    brutas = await transferenciasSolana(addr, 100);
+    brutas = await transferenciasSolana(addr, { desde: token.last_ingest_at, limite });
   }
 
-  // Guardamos no maximo 31 dias.
-  const limite = Date.now() - 31 * 86400000;
   brutas = brutas.filter((t) => new Date(t.ts).getTime() >= limite);
 
   // ---- 4. Pools de negociacao ----
