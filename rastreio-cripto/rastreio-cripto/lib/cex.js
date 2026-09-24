@@ -114,12 +114,19 @@ export async function lerCorretoras(chain, address, simboloOnChain = null) {
     const simboloDivergente =
       !!simboloOnChain && !!simboloCoinGecko && simboloOnChain.toUpperCase() !== simboloCoinGecko;
 
+    // Preco de referencia das corretoras (media ponderada que o proprio
+    // CoinGecko calcula sobre todos os mercados). E a terceira fonte usada
+    // para validar o preco on-chain -- a mais dificil de "quebrar", porque
+    // vem de mercados com volume muito maior que uma pool isolada.
+    const precoReferencia = Number(dados.market_data?.current_price?.usd) || null;
+
     return {
       listado: corretoras.length > 0,
       corretoras,
       variacao24h,
       simboloCoinGecko,
       simboloDivergente,
+      precoReferencia,
     };
   } catch (e) {
     console.warn('lerCorretoras:', e.message);
