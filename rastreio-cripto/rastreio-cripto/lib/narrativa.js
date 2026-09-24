@@ -15,19 +15,19 @@ export function montarNarrativa({ locale, periodos, projeto, raio7d, liquidez })
   // 1) Manchete: o que aconteceu nas ultimas 24 horas
   let manchete;
   if (b.nCompras + b.nVendas === 0) {
-    manchete = en ? 'No buying or selling in the last 24 hours.' : 'Nenhuma compra ou venda nas últimas 24 horas.';
+    manchete = en ? 'No buying or selling in trading pools (DEX) in the last 24 hours.' : 'Nenhuma compra ou venda nas pools de negociação (DEX) nas últimas 24 horas.';
   } else if (b.pctCompra > 58) {
     manchete = en
-      ? `More buying than selling: ${$(b.compras)} bought against ${$(b.vendas)} sold in the last 24 hours.`
-      : `Mais compra que venda: ${$(b.compras)} em compras contra ${$(b.vendas)} em vendas nas últimas 24 horas.`;
+      ? `In trading pools (DEX), more buying than selling: ${$(b.compras)} bought against ${$(b.vendas)} sold in the last 24 hours.`
+      : `Nas pools de negociação (DEX), mais compra que venda: ${$(b.compras)} em compras contra ${$(b.vendas)} em vendas nas últimas 24 horas.`;
   } else if (b.pctVenda > 58) {
     manchete = en
-      ? `More selling than buying: ${$(b.vendas)} sold against ${$(b.compras)} bought in the last 24 hours.`
-      : `Mais venda que compra: ${$(b.vendas)} em vendas contra ${$(b.compras)} em compras nas últimas 24 horas.`;
+      ? `In trading pools (DEX), more selling than buying: ${$(b.vendas)} sold against ${$(b.compras)} bought in the last 24 hours.`
+      : `Nas pools de negociação (DEX), mais venda que compra: ${$(b.vendas)} em vendas contra ${$(b.compras)} em compras nas últimas 24 horas.`;
   } else {
     manchete = en
-      ? `Buying and selling are balanced: ${$(b.compras)} bought and ${$(b.vendas)} sold in the last 24 hours.`
-      : `Compra e venda equilibradas: ${$(b.compras)} em compras e ${$(b.vendas)} em vendas nas últimas 24 horas.`;
+      ? `In trading pools (DEX), buying and selling are balanced: ${$(b.compras)} bought and ${$(b.vendas)} sold in the last 24 hours.`
+      : `Nas pools de negociação (DEX), compra e venda equilibradas: ${$(b.compras)} em compras e ${$(b.vendas)} em vendas nas últimas 24 horas.`;
   }
 
   const frases = [];
