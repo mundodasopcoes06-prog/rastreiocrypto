@@ -23,6 +23,11 @@ const TOLERANCIA = 1.5;
 const SALTO_MAXIMO = 10;
 // Janela em que a ultima leitura ainda serve de comparacao.
 const JANELA_SALTO_MS = 7 * 86400000;
+// Valor de mercado (preco x total emitido) nao pode passar disso multiplicado
+// pela liquidez. Pega o caso em que DUAS fontes on-chain concordam entre si
+// mas ainda assim estao erradas (ex: sPENDLE, onde DexScreener e GeckoTerminal
+// herdam o mesmo calculo quebrado de uma pool cruzada com o PENDLE comum).
+const LIMITE_MARKETCAP_LIQUIDEZ = 50000;
 
 function concordam(a, b) {
   if (!a || !b) return false;
@@ -37,7 +42,7 @@ function concordam(a, b) {
  * @returns { preco, status, fontes, salto }
  *   status: confirmado | corrigido | fonte_unica | divergente | salto_suspeito | sem_preco
  */
-export function validarPreco({ dex, gecko, cex, anterior }) {
+export function validarPreco({ dex, gecko, cex, anterior, supply, liquidez }) {
   const fontes = { dex: dex || null, gecko: gecko || null, cex: cex?.confiavel ? cex.preco || null : null };
   const precoCex = fontes.cex;
 
@@ -66,8 +71,29 @@ export function validarPreco({ dex, gecko, cex, anterior }) {
     const razao = Math.max(preco, anterior.preco) / Math.min(preco, anterior.preco);
     if (razao > SALTO_MAXIMO) {
       salto = razao;
-      const confirmadoPorCorretora = precoCex && concordam(preco, precoCex);
-      if (!confirmadoPorCorretora) { preco = null; status = 'salto_suspeito'; }
+      // So bloqueia quando o preco novo vem de UMA fonte so. Se duas fontes
+      // independentes concordam no valor novo (ou as corretoras confirmam),
+      // o salto e real -- ou e a correcao de um preco errado guardado antes.
+      // Bloquear nesse caso deixaria o token travado por 7 dias.
+      if (status === 'fonte_unica') { preco = null; status = 'salto_suspeito'; }
+    }
+  }
+
+  // Ultima linha de defesa: o preco implica um valor de mercado impossivel
+  // para a liquidez que o token tem de verdade. Roda mesmo quando as fontes
+  // on-chain concordam entre si -- pega o caso do sPENDLE, onde DexScreener
+  // e GeckoTerminal concordam num preco errado e as corretoras nao puderam
+  // corrigir porque o simbolo delas e de outro token (protecao correta,
+  // mas que sozinha nao bastava aqui).
+  const statusJaRejeitado = status === 'divergente' || status === 'salto_suspeito' || status === 'sem_preco';
+  if (preco && supply && liquidez && !statusJaRejeitado) {
+    const confirmadoPorCex = precoCex && concordam(preco, precoCex);
+    if (!confirmadoPorCex) {
+      const marketCap = preco * supply;
+      if (marketCap / liquidez > LIMITE_MARKETCAP_LIQUIDEZ) {
+        preco = null;
+        status = 'mercado_implausivel';
+      }
     }
   }
 
