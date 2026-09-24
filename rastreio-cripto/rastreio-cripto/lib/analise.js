@@ -156,7 +156,11 @@ export function balanco(transferencias, horas) {
   const janela = transferencias.filter((t) => dentroDe(t.ts, horas));
   let compras = 0, vendas = 0, nCompras = 0, nVendas = 0;
 
+  // So conta negociacao de verdade: compra ou venda feita numa pool (DEX).
+  // Saque/deposito em corretora e transferencia entre carteiras NAO sao
+  // compra nem venda -- aparecem separados, com o nome certo.
   for (const t of janela) {
+    if (t.actor !== 'dex') continue;
     const valor = t.usd_value ?? 0;
     if (t.kind === 'compra') { compras += valor; nCompras++; }
     else if (t.kind === 'venda') { vendas += valor; nVendas++; }
@@ -188,6 +192,7 @@ export function porDia(transferencias, dias) {
     const dia = new Date(t.ts).toISOString().slice(0, 10);
     const linha = mapa.get(dia);
     if (!linha) continue;
+    if (t.actor !== 'dex') continue; // mesma regra do balanco
     const valor = t.usd_value ?? 0;
     if (t.kind === 'compra') linha.compras += valor;
     else if (t.kind === 'venda') linha.vendas += valor;
@@ -201,6 +206,9 @@ export function porDia(transferencias, dias) {
 // ------------------------------------------------------------
 const valor = (t) => Number(t.usd_value) || 0;
 const eNegocio = (t) => t.kind === 'compra' || t.kind === 'venda';
+// Negociacao de verdade: compra ou venda feita numa pool (DEX).
+// Saque/deposito em corretora e transferencia entre carteiras ficam de fora.
+const eNegociacaoDex = (t) => t.actor === 'dex' && eNegocio(t);
 const usdTxt = (n) => `$${Math.round(n).toLocaleString('pt-BR')}`;
 
 function eGrande(t) {
@@ -287,7 +295,10 @@ export function raioX(transferencias, horas, carteirasProjeto) {
   for (const c of CATEGORIAS) r[c] = { compras: 0, vendas: 0, nCompras: 0, nVendas: 0 };
   for (const t of transferencias) {
     if (!eNegocio(t) || !dentroDe(t.ts, horas)) continue;
-    const c = categoriaDe(t, carteirasProjeto);
+    // Corretora: "compras" aqui sao SAQUES e "vendas" sao DEPOSITOS.
+    // Transferencias entre carteiras (inclusive do projeto) nao sao negociacao.
+    if (t.actor !== 'dex' && t.actor !== 'corretora') continue;
+    const c = t.actor === 'corretora' ? 'corretoras' : categoriaDe(t, carteirasProjeto);
     if (t.kind === 'compra') { r[c].compras += valor(t); r[c].nCompras++; }
     else { r[c].vendas += valor(t); r[c].nVendas++; }
   }
@@ -300,7 +311,7 @@ export function raioX(transferencias, horas, carteirasProjeto) {
 
 /** Varias compras/vendas com a MESMA quantidade, vindas de poucas carteiras. */
 export function detectarValoresRepetidos(transferencias, conhecidos) {
-  const semana = transferencias.filter((t) => eNegocio(t) && dentroDe(t.ts, 168) && Number(t.amount) > 0);
+  const semana = transferencias.filter((t) => eNegociacaoDex(t) && dentroDe(t.ts, 168) && Number(t.amount) > 0);
   const volumeSemana = semana.reduce((s, t) => s + valor(t), 0);
 
   const grupos = new Map();
@@ -343,7 +354,7 @@ export function detectarValoresRepetidos(transferencias, conhecidos) {
 export function detectarVaiEVolta(transferencias, conhecidos) {
   const porCarteira = new Map();
   for (const t of transferencias) {
-    if (!eNegocio(t) || !dentroDe(t.ts, 168)) continue;
+    if (!eNegociacaoDex(t) || !dentroDe(t.ts, 168)) continue;
     const a = t.counterparty;
     if (!a || conhecidos.has(a)) continue;
     if (!porCarteira.has(a)) porCarteira.set(a, { compras: 0, vendas: 0, usd: 0 });
@@ -374,7 +385,7 @@ export function detectarCarteirasIrmas(transferencias, conhecidos, carteirasProj
 
   const vendas = new Map();
   for (const t of transferencias) {
-    if (t.kind !== 'venda' || !t.counterparty) continue;
+    if (!eNegociacaoDex(t) || t.kind !== 'venda' || !t.counterparty) continue;
     vendas.set(t.counterparty, (vendas.get(t.counterparty) || 0) + valor(t));
   }
 
@@ -397,12 +408,11 @@ export function detectarCarteirasIrmas(transferencias, conhecidos, carteirasProj
 export function detectarHorarioRepetido(transferencias, conhecidos, fuso) {
   const grupos = new Map();
   for (const t of transferencias) {
-    if (!eNegocio(t)) continue;
-    let chave, nome, endereco = null;
-    if (t.actor === 'corretora' && t.actor_label) {
-      chave = `c:${t.actor_label}:${t.kind}`;
-      nome = t.actor_label;
-    } else {
+    // So compra/venda em pool. Antes, depositos de clientes na Binance
+    // podiam virar "Binance vendeu todo dia as 10h" -- o que e falso.
+    if (!eNegociacaoDex(t)) continue;
+    let chave, nome = null, endereco = null;
+    {
       if (!t.counterparty || conhecidos.has(t.counterparty)) continue;
       chave = `w:${t.counterparty}:${t.kind}`;
       endereco = t.counterparty;
