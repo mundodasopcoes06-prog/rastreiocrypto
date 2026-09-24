@@ -11,6 +11,8 @@ import { situacaoDoToken } from './precos';
 import { classificar, detectarCarteirasProjeto } from './analise';
 import { maioresDonos } from './donos';
 import { lerCorretoras } from './cex';
+import { precoGeckoTerminal } from './geckoterminal';
+import { validarPreco, validarLiquidez } from './validacao';
 
 function nomePool(dex) {
   if (!dex || dex === 'pool') return 'Pool de negociação';
@@ -66,8 +68,38 @@ export async function coletar(chain, address) {
   const addr = normalizarEndereco(chain, address);
   const token = await garantirToken(chain, addr);
 
-  // ---- 1. Preco, liquidez e volume (DexScreener, gratuito) ----
-  const situacao = await situacaoDoToken(chain, addr);
+  // ---- 1. Preco, liquidez e volume: TRES fontes, em paralelo ----
+  //   DexScreener (on-chain) + GeckoTerminal (on-chain, independente)
+  //   + corretoras via CoinGecko (atualizada no maximo a cada 30 min).
+  const cexVelho =
+    !token.cex_data_at || Date.now() - new Date(token.cex_data_at).getTime() > 30 * 60 * 1000;
+  const [situacao, gecko, cexNovo] = await Promise.all([
+    situacaoDoToken(chain, addr),
+    precoGeckoTerminal(chain, addr),
+    cexVelho ? lerCorretoras(chain, addr, token.symbol || null) : Promise.resolve(null),
+  ]);
+  const cex = cexNovo || token.cex_data || null;
+
+  // Na primeira leitura o simbolo ainda nao era conhecido quando as
+  // corretoras foram consultadas. Refazemos a checagem agora (evita que
+  // um token "empacotado", como o sPENDLE, use o preco do token original).
+  const simboloOnChain = situacao?.simbolo || gecko?.simbolo || token.symbol || null;
+  if (cex?.simboloCoinGecko && simboloOnChain) {
+    cex.simboloDivergente = cex.simboloCoinGecko.toUpperCase() !== simboloOnChain.toUpperCase();
+  }
+
+  // Nenhum preco e aceito sem ser conferido em outra fonte.
+  const validacao = validarPreco({
+    dex: situacao?.price_usd ?? null,
+    gecko: gecko?.preco ?? null,
+    cex: cex?.precoReferencia
+      ? { preco: cex.precoReferencia, confiavel: cex.listado && !cex.simboloDivergente }
+      : null,
+    anterior: token.preco_validado
+      ? { preco: Number(token.preco_validado), em: token.preco_validado_at }
+      : null,
+  });
+  const liquidezValidada = validarLiquidez(situacao?.liquidity_usd ?? null, gecko?.liquidez ?? null);
 
   // ---- 2. Dados do proprio contrato ----
   const atualizacaoToken = {
@@ -163,7 +195,9 @@ export async function coletar(chain, address) {
     });
   }
   const supply = atualizacaoToken.total_supply ?? token.total_supply ?? null;
-  const preco = situacao?.price_usd ?? null;
+  // So o preco VALIDADO entra nos calculos. Se nao deu pra confirmar,
+  // fica null e os valores em dolar simplesmente nao sao mostrados.
+  const preco = validacao.preco;
 
   const tokenAtualizado = { ...token, ...atualizacaoToken };
   const carteirasProjetoMapa = detectarCarteirasProjeto(tokenAtualizado, brutas);
@@ -219,15 +253,27 @@ export async function coletar(chain, address) {
     await s.from('project_wallets').upsert(linhas, { onConflict: 'chain,token_address,address' });
   }
 
-  // Fotografia de preco e liquidez
-  if (situacao) {
+  // Resultado da validacao fica guardado no token.
+  atualizacaoToken.preco_status = validacao.status;
+  atualizacaoToken.preco_fontes = { ...validacao.fontes, salto: validacao.salto };
+  if (validacao.preco) {
+    atualizacaoToken.preco_validado = validacao.preco;
+    atualizacaoToken.preco_validado_at = new Date().toISOString();
+  }
+  if (cexNovo) {
+    atualizacaoToken.cex_data = cexNovo;
+    atualizacaoToken.cex_data_at = new Date().toISOString();
+  }
+
+  // Fotografia de preco e liquidez (so com valores validados)
+  if (situacao || gecko) {
     await s.from('token_snapshots').insert({
       chain, token_address: addr,
-      price_usd: situacao.price_usd,
-      liquidity_usd: situacao.liquidity_usd,
-      volume_24h: situacao.volume_24h,
-      buys_24h: situacao.buys_24h,
-      sells_24h: situacao.sells_24h,
+      price_usd: validacao.preco,
+      liquidity_usd: liquidezValidada,
+      volume_24h: situacao?.volume_24h ?? gecko?.volume24h ?? null,
+      buys_24h: situacao?.buys_24h ?? null,
+      sells_24h: situacao?.sells_24h ?? null,
     });
   }
 
@@ -239,18 +285,6 @@ export async function coletar(chain, address) {
     if (donos) {
       atualizacaoToken.top_holders = donos;
       atualizacaoToken.top_holders_at = new Date().toISOString();
-    }
-  }
-
-  // Corretoras centralizadas: tambem no maximo a cada 30 minutos.
-  const cexVelho =
-    !token.cex_data_at || Date.now() - new Date(token.cex_data_at).getTime() > 30 * 60 * 1000;
-  if (cexVelho) {
-    const simboloAtual = atualizacaoToken.symbol || token.symbol || null;
-    const cex = await lerCorretoras(chain, addr, simboloAtual);
-    if (cex) {
-      atualizacaoToken.cex_data = cex;
-      atualizacaoToken.cex_data_at = new Date().toISOString();
     }
   }
 
@@ -300,9 +334,22 @@ export async function lerToken(chain, address) {
     }
   }
 
+  // Valores em dolar sao recalculados AGORA, com o ultimo preco validado.
+  // Assim, se um preco errado tiver sido gravado no passado, ele nao
+  // contamina mais nada: o banco guarda so as quantidades de tokens.
+  const precoAtual = token.preco_status === 'divergente' || token.preco_status === 'salto_suspeito'
+    ? null
+    : Number(token.preco_validado) || null;
+  const supply = Number(token.total_supply) || null;
+  const recalculadas = (transferencias || []).map((t) => ({
+    ...t,
+    usd_value: precoAtual ? Number(t.amount) * precoAtual : null,
+    supply_pct: supply ? (Number(t.amount) / supply) * 100 : t.supply_pct,
+  }));
+
   return {
-    token,
-    transferencias: transferencias || [],
+    token: { ...token, preco_atual: precoAtual },
+    transferencias: recalculadas,
     snapshots: snapshots || [],
     carteirasProjeto: new Set((carteiras || []).map((c) => c.address)),
     motivosProjeto: new Map((carteiras || []).map((c) => [c.address, c.reason])),
