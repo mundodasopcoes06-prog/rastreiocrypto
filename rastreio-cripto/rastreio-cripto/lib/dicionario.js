@@ -180,6 +180,7 @@ const textos = {
       divergente: 'Preço não confirmado: as fontes discordam',
       salto_suspeito: 'Preço rejeitado: salto suspeito',
       sem_preco: 'Preço indisponível',
+      mercado_implausivel: 'Preço rejeitado: valor de mercado impossível',
     },
     precoStatusTexto: {
       confirmado: (n) => `O preço usado nesta página foi conferido e bate em ${n} fontes independentes.`,
@@ -188,6 +189,7 @@ const textos = {
       divergente: () => 'As fontes on-chain informam preços muito diferentes e o token não está em corretoras para desempatar. Para não mostrar um número errado, os valores em dólar foram ocultados. As quantidades de tokens continuam corretas.',
       salto_suspeito: () => 'O preço mudou mais de 10 vezes desde a última leitura sem confirmação independente. Os valores em dólar foram ocultados até que o preço seja confirmado. As quantidades de tokens continuam corretas.',
       sem_preco: () => 'Nenhuma fonte informou preço para este token agora. As quantidades de tokens continuam corretas.',
+      mercado_implausivel: () => 'As fontes on-chain concordam entre si, mas o preço implicaria um valor de mercado maior que a liquidez real do token poderia sustentar — sinal de que o cálculo está errado, mesmo com fontes concordando. Os valores em dólar foram ocultados. As quantidades de tokens continuam corretas.',
     },
     precoFontesVer: 'Ver o preço em cada fonte',
     precoFonteCorretoras: 'Corretoras (CoinGecko)',
@@ -400,6 +402,7 @@ const textos = {
       divergente: 'Price not confirmed: sources disagree',
       salto_suspeito: 'Price rejected: suspicious jump',
       sem_preco: 'Price unavailable',
+      mercado_implausivel: 'Price rejected: impossible market cap',
     },
     precoStatusTexto: {
       confirmado: (n) => `The price used on this page was checked and matches across ${n} independent sources.`,
@@ -408,6 +411,7 @@ const textos = {
       divergente: () => 'On-chain sources report very different prices and the token is not on exchanges to break the tie. To avoid showing a wrong number, dollar values are hidden. Token amounts remain correct.',
       salto_suspeito: () => 'The price moved more than 10x since the last read without independent confirmation. Dollar values are hidden until the price is confirmed. Token amounts remain correct.',
       sem_preco: () => 'No source reported a price for this token right now. Token amounts remain correct.',
+      mercado_implausivel: () => 'On-chain sources agree with each other, but the price would imply a market cap far larger than the token\'s real liquidity could support — a sign the calculation is wrong even when sources agree. Dollar values are hidden. Token amounts remain correct.',
     },
     precoFontesVer: 'See the price from each source',
     precoFonteCorretoras: 'Exchanges (CoinGecko)',
