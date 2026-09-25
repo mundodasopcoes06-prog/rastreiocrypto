@@ -44,9 +44,9 @@ const textos = {
 
     periodo24h: '24 horas',
     periodo7d: '7 dias',
-    periodo30d: '30 dias',
+    periodo15d: '15 dias',
     periodoTitulo: 'Balanço de compras e vendas nas pools (DEX)',
-    periodoAjuda: 'Só entram negociações de verdade, feitas em pools de negociação (DEX). Saques e depósitos em corretoras e transferências entre carteiras não são compra nem venda e aparecem separados. Guardamos os últimos 30 dias.',
+    periodoAjuda: 'Só entram negociações de verdade, feitas em pools de negociação (DEX). Saques e depósitos em corretoras e transferências entre carteiras não são compra nem venda e aparecem separados. Soma de todas as negociações do período, lidas continuamente.',
 
     alertasTitulo: 'Sinais de atenção',
     semAlertas: 'Nenhum sinal de atenção na janela analisada.',
@@ -127,7 +127,7 @@ const textos = {
     projetoTitulo: 'O que as carteiras do projeto estão fazendo',
     projetoSub: 'Carteiras que criaram o contrato, controlam a emissão ou receberam tokens direto delas. A ligação com o projeto é deduzida (indício).',
     projetoNenhuma: 'Não conseguimos identificar carteiras do projeto neste token. Na Solana isso é comum quando o criador renunciou ao controle do contrato; na Ethereum, quando o criador nunca movimentou o token.',
-    projetoParado: 'Nenhuma movimentação das carteiras do projeto nos últimos 30 dias.',
+    projetoParado: 'Nenhuma movimentação das carteiras do projeto nos últimos 15 dias.',
     projetoQtd: (n) => `${n} ${n === 1 ? 'carteira identificada' : 'carteiras identificadas'}`,
     projetoUltimo: 'Último movimento',
     projetoVerCarteiras: 'Ver as carteiras',
@@ -191,6 +191,16 @@ const textos = {
     // ---- confiabilidade do preco (liquidez muito baixa) ----
     avisoLiquidezBaixaTitulo: 'Atenção: liquidez muito baixa neste token',
     avisoLiquidezBaixaTexto: (v) => `A pool de negociação deste token tem apenas ${v} de liquidez agora. Com tão pouco dinheiro disponível, uma única negociação grande pode distorcer bastante o "preço de tabela" — e todo valor em dólar nesta página é calculado a partir desse preço. Trate os valores abaixo com cautela extra; se houver uma seção "Nas corretoras" nesta página, ela pode ser uma referência mais confiável.`,
+
+    // ---- cobertura da leitura continua ----
+    coberturaIniciando: 'Iniciando a leitura contínua deste token. Os totais vão sendo preenchidos conforme o histórico é lido (a cada 10 minutos).',
+    coberturaCompletaEth: (ha) => `Leitura contínua: estão incluídas todas as transferências deste token nos últimos 15 dias. Atualizado a cada 10 minutos (última sincronização: ${ha}).`,
+    coberturaParcial: (desde) => `Sincronizando o histórico: já temos todas as transferências desde ${desde}. Períodos que começam antes disso ainda estão incompletos e aparecem marcados abaixo.`,
+    coberturaAtrasada: (ha) => `A última sincronização foi ${ha}; os movimentos mais recentes ainda não entraram.`,
+    coberturaSolana: 'Na Solana, a fonte de dados (Helius) só entrega transações que citam o endereço do token: algumas transferências simples entre carteiras podem não aparecer. Tokens muito negociados também podem passar do limite diário do plano gratuito — nesse caso a cobertura aparece como incompleta.',
+    coberturaSolanaDesde: (desde) => `Leitura contínua desde ${desde}, dentro do limite acima.`,
+    periodoIncompleto: (desde) => `Período incompleto: os dados completos começam em ${desde}.`,
+    alertasBase: (n, desde) => `Os sinais de padrão abaixo analisam os ${n} movimentos mais recentes (desde ${desde}). Os totais de compra e venda usam todas as transações.`,
 
     // ---- validacao do preco (3 fontes) ----
     precoStatusTitulo: {
@@ -286,9 +296,9 @@ const textos = {
 
     periodo24h: '24 hours',
     periodo7d: '7 days',
-    periodo30d: '30 days',
+    periodo15d: '15 days',
     periodoTitulo: 'Buying and selling balance in pools (DEX)',
-    periodoAjuda: 'Only real trades made in trading pools (DEX) count here. Exchange withdrawals and deposits, and transfers between wallets, are not buys or sells and are shown separately. We keep the last 30 days.',
+    periodoAjuda: 'Only real trades made in trading pools (DEX) count here. Exchange withdrawals and deposits, and transfers between wallets, are not buys or sells and are shown separately. Sum of every trade in the period, read continuously.',
 
     alertasTitulo: 'Things to watch',
     semAlertas: 'No warning signs in the analysed window.',
@@ -369,7 +379,7 @@ const textos = {
     projetoTitulo: 'What the project wallets are doing',
     projetoSub: 'Wallets that created the contract, control minting, or received tokens directly from them. The link to the project is inferred (indication).',
     projetoNenhuma: 'We could not identify project wallets for this token. On Solana this is common when the creator renounced control; on Ethereum, when the creator never moved the token.',
-    projetoParado: 'No movement from project wallets in the last 30 days.',
+    projetoParado: 'No movement from project wallets in the last 15 days.',
     projetoQtd: (n) => `${n} ${n === 1 ? 'wallet identified' : 'wallets identified'}`,
     projetoUltimo: 'Last movement',
     projetoVerCarteiras: 'See the wallets',
@@ -433,6 +443,16 @@ const textos = {
     // ---- price reliability (very low liquidity) ----
     avisoLiquidezBaixaTitulo: 'Warning: very low liquidity for this token',
     avisoLiquidezBaixaTexto: (v) => `This token's trading pool currently has only ${v} in liquidity. With so little money available, a single large trade can badly distort the "quoted price" — and every dollar value on this page is calculated from that price. Treat the figures below with extra caution; if this page has an "On exchanges" section, it may be a more reliable reference.`,
+
+    // ---- continuous reading coverage ----
+    coberturaIniciando: 'Starting continuous reading for this token. Totals fill in as the history is read (every 10 minutes).',
+    coberturaCompletaEth: (ha) => `Continuous reading: every transfer of this token in the last 15 days is included. Updated every 10 minutes (last sync: ${ha}).`,
+    coberturaParcial: (desde) => `Syncing history: we already have every transfer since ${desde}. Periods that start before that are still incomplete and are marked below.`,
+    coberturaAtrasada: (ha) => `The last sync was ${ha}; the most recent movements have not come in yet.`,
+    coberturaSolana: 'On Solana, the data source (Helius) only returns transactions that mention the token address: some plain wallet-to-wallet transfers may be missing. Very active tokens can also exceed the free plan daily limit — coverage then shows as incomplete.',
+    coberturaSolanaDesde: (desde) => `Continuous reading since ${desde}, within the limit above.`,
+    periodoIncompleto: (desde) => `Incomplete period: complete data starts on ${desde}.`,
+    alertasBase: (n, desde) => `The pattern signals below analyse the ${n} most recent movements (since ${desde}). Buy and sell totals use every transaction.`,
 
     // ---- price validation (3 sources) ----
     precoStatusTitulo: {
