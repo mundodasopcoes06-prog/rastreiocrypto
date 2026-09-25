@@ -1,0 +1,20 @@
+# Leitura continua do Rastreio Cripto.
+# A cada 10 minutos, chama o site para ler as transacoes novas de
+# todos os tokens acompanhados. Gratuito em repositorio publico.
+name: Leitura continua
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}   # permite rodar na mao pela aba Actions
+
+jobs:
+  indexar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ler transacoes novas
+        run: |
+          curl -sS --max-time 90 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://rastreiocrypto.vercel.app/api/indexar
