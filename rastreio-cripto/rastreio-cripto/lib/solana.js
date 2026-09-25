@@ -39,7 +39,9 @@ export const CREDITOS_POR_PAGINA_SOL = 10;
  * carteiras que nao citam o endereco do token podem ficar de fora.
  */
 export async function paginaSolana(mint, { continuarDe = null } = {}) {
-  const corpo = { address: mint, limit: TAMANHO_PAGINA_SOL, sortOrder: 'desc' };
+  // So campos documentados: a Helius RECUSA a requisicao inteira se receber
+  // um campo que nao conhece. A ordem padrao ja e "mais nova primeiro".
+  const corpo = { address: mint, limit: TAMANHO_PAGINA_SOL };
   if (continuarDe) corpo.paginationToken = continuarDe;
 
   const r = await fetch(`https://mainnet.helius-rpc.com/v1/parsed-events/transaction-history?api-key=${chave()}`, {
@@ -55,8 +57,14 @@ export async function paginaSolana(mint, { continuarDe = null } = {}) {
   let maisAntigaTs = null;
   for (const item of lista) {
     const p = item?.parsed;
+    // A data de TODA transacao da pagina conta para saber ate onde a pagina
+    // chegou -- inclusive as que falharam ou nao foram decodificadas.
+    if (p?.blockTime && (maisAntigaTs === null || p.blockTime < maisAntigaTs)) maisAntigaTs = p.blockTime;
     if (!p || item.parserStatus !== 'OK') continue;
-    if (maisAntigaTs === null || (p.blockTime && p.blockTime < maisAntigaTs)) maisAntigaTs = p.blockTime;
+    // Transacao que FALHOU na blockchain (ex: "slippage" estourado): a Helius
+    // ainda lista as transferencias que ela TENTOU fazer, mas nenhum token
+    // mudou de mao. Contar isso inventaria compras e vendas que nao existiram.
+    if (p.transactionStatus && p.transactionStatus !== 'OK') continue;
     for (const tt of p.tokenTransfers || []) {
       if (tt.mint !== mint) continue;
       const casas = Number(tt.decimals) || 0;
