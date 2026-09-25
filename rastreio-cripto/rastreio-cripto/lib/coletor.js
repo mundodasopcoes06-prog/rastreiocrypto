@@ -9,13 +9,13 @@ import { db } from './supabase';
 import { criadorDoContrato, supplyEthereum } from './ethereum';
 import { dadosDoMint, metadadosSolana, CREDITOS_POR_PAGINA_SOL } from './solana';
 import { situacaoDoToken } from './precos';
-import { classificar, detectarCarteirasProjeto, categoriasDoMovimento } from './analise';
+import { classificar, detectarCarteirasProjeto, categoriasDoMovimento, anularIdaEVolta } from './analise';
 import { lerMovimentosEthereum, lerMovimentosSolana, JANELA_MS } from './indexador';
 
 // Teto diario de creditos da Helius gasto na leitura continua da Solana.
 // O plano gratuito tem 1 milhao por mes; 15 mil por dia deixa folga para
 // o resto do site (dados do token, maiores donos).
-const LIMITE_DIARIO_HELIUS = 15000;
+const LIMITE_DIARIO_HELIUS = 25000; // ~750 mil/mes; sobram ~250 mil para o resto do site
 import { maioresDonos } from './donos';
 import { lerCorretoras } from './cex';
 import { precoGeckoTerminal } from './geckoterminal';
@@ -70,7 +70,9 @@ export async function garantirToken(chain, address) {
  * Faz a leitura completa de um token.
  * Devolve quantos movimentos novos entraram.
  */
-export async function coletar(chain, address, { prazoMs = 35000 } = {}) {
+// prazoMs: tempo maximo para LER a blockchain. A gravacao vem depois; o
+// total precisa caber com folga nos 60 segundos da Vercel.
+export async function coletar(chain, address, { prazoMs = 25000 } = {}) {
   const prazo = Date.now() + prazoMs;
   const s = db();
   const addr = normalizarEndereco(chain, address);
@@ -238,7 +240,8 @@ export async function coletar(chain, address, { prazoMs = 35000 } = {}) {
   }
   const carteirasProjeto = new Set(carteirasProjetoMapa.keys());
 
-  const classificadas = brutas.map((t) =>
+  // Ida e volta na mesma transacao nao e compra nem venda (ver anularIdaEVolta).
+  const classificadas = anularIdaEVolta(brutas.map((t) =>
     classificar(
       {
         ...t,
@@ -247,7 +250,7 @@ export async function coletar(chain, address, { prazoMs = 35000 } = {}) {
       },
       { rotulos, carteirasProjeto, preco, supply }
     )
-  );
+  ));
 
   // ---- 6. Gravacao ----
   // Cada movimento e gravado junto com as categorias em que entra; o banco
@@ -271,8 +274,8 @@ export async function coletar(chain, address, { prazoMs = 35000 } = {}) {
       supply_pct: t.supply_pct,
       categorias: categoriasDoMovimento(t, carteirasProjeto),
     }));
-    for (let i = 0; i < linhas.length; i += 500) {
-      const { data, error } = await s.rpc('registrar_movimentos', { p: linhas.slice(i, i + 500) });
+    for (let i = 0; i < linhas.length; i += 1000) {
+      const { data, error } = await s.rpc('registrar_movimentos', { p: linhas.slice(i, i + 1000) });
       if (error) {
         // Sem gravar, os cursores NAO podem avancar: senao ficaria um buraco.
         console.error('Erro ao gravar movimentos:', error.message);
@@ -331,7 +334,9 @@ export async function coletar(chain, address, { prazoMs = 35000 } = {}) {
   }
 
   const { error: erroToken } = await s.from('tokens').update(atualizacaoToken).eq('chain', chain).eq('address', addr);
-  if (erroToken) console.warn('Erro ao atualizar token:', erroToken.message);
+  // Se o banco recusar a gravacao (ex: coluna que nao existe), o progresso da
+  // leitura se perde e o token fica travado -- por isso vai como ERRO no log.
+  if (erroToken) console.error('Erro ao atualizar token:', erroToken.message);
 
   // Apaga o que passou do prazo (movimentos 7 dias; totais 16 dias).
   try { await s.rpc('limpar_antigos'); } catch (e) { /* nao pode travar a pagina */ }
