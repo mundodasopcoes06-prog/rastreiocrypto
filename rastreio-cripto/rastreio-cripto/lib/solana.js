@@ -38,13 +38,43 @@ export const CREDITOS_POR_PAGINA_SOL = 10;
  * o proprio endereco do token aparece. Transferencias simples entre
  * carteiras que nao citam o endereco do token podem ficar de fora.
  */
+// ------------------------------------------------------------
+// LIMITE DE VELOCIDADE DA HELIUS
+// No plano gratuito, as APIs "Enhanced" (grupo que inclui a Parsed Events)
+// aceitam no maximo 2 chamadas por segundo; acima disso respondem 429.
+// Cada chamada reserva a sua vez com 600 ms de distancia da anterior --
+// inclusive quando duas leituras rodam ao mesmo tempo no mesmo servidor.
+// ------------------------------------------------------------
+const INTERVALO_HELIUS_MS = 600;
+let proximaVezHelius = 0;
+
+async function aguardarVezHelius() {
+  const agora = Date.now();
+  const minhaVez = Math.max(agora, proximaVezHelius);
+  proximaVezHelius = minhaVez + INTERVALO_HELIUS_MS;
+  if (minhaVez > agora) await new Promise((r) => setTimeout(r, minhaVez - agora));
+}
+
+// Se mesmo assim vier 429 (ex.: outra leitura rodando em outro servidor da
+// Vercel ao mesmo tempo), espera o que a Helius pedir e tenta de novo.
+async function chamarHelius(url, opcoes, tentativas = 3) {
+  for (let t = 1; ; t++) {
+    await aguardarVezHelius();
+    const r = await fetch(url, opcoes);
+    if (r.status !== 429 || t >= tentativas) return r;
+    const pedido = Number(r.headers.get('retry-after'));
+    const espera = Math.min(4000, pedido > 0 ? pedido * 1000 : 1000 * 2 ** (t - 1));
+    await new Promise((res) => setTimeout(res, espera));
+  }
+}
+
 export async function paginaSolana(mint, { continuarDe = null } = {}) {
   // So campos documentados: a Helius RECUSA a requisicao inteira se receber
   // um campo que nao conhece. A ordem padrao ja e "mais nova primeiro".
   const corpo = { address: mint, limit: TAMANHO_PAGINA_SOL };
   if (continuarDe) corpo.paginationToken = continuarDe;
 
-  const r = await fetch(`https://mainnet.helius-rpc.com/v1/parsed-events/transaction-history?api-key=${chave()}`, {
+  const r = await chamarHelius(`https://mainnet.helius-rpc.com/v1/parsed-events/transaction-history?api-key=${chave()}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corpo),
