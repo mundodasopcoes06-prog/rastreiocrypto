@@ -1,13 +1,14 @@
 import { t, textoAlerta } from '@/lib/dicionario';
 import { encurtarEndereco, linkExplorador } from '@/lib/formato';
 
-export default function Alertas({ locale, alertas, chain }) {
+export default function Alertas({ locale, alertas, chain, base = null }) {
   const txt = t(locale);
 
   return (
     <section className="bloco">
       <h2>{txt.alertasTitulo}</h2>
       <p className="sub">{txt.avisoGeral}</p>
+      {base && <p className="ajuda">{txt.alertasBase(base.n, base.desde)}</p>}
 
       {alertas.length === 0 ? (
         <p className="ajuda">{txt.semAlertas}</p>
