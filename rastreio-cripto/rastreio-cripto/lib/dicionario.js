@@ -67,6 +67,8 @@ const textos = {
     tipoCompraDex: 'Compra na DEX',
     tipoVendaDex: 'Venda na DEX',
     tipoTrocaDex: 'Troca na DEX',
+    tipoIdaVolta: 'Ida e volta na DEX',
+    movIdaVolta: '{a} mandou tokens para a pool e recebeu a mesma quantidade de volta na mesma transação: não houve compra nem venda',
     tipoSaque: 'Saque de corretora',
     tipoDeposito: 'Depósito em corretora',
     tipoMovQueima: 'Queima',
@@ -193,6 +195,7 @@ const textos = {
     avisoLiquidezBaixaTexto: (v) => `A pool de negociação deste token tem apenas ${v} de liquidez agora. Com tão pouco dinheiro disponível, uma única negociação grande pode distorcer bastante o "preço de tabela" — e todo valor em dólar nesta página é calculado a partir desse preço. Trate os valores abaixo com cautela extra; se houver uma seção "Nas corretoras" nesta página, ela pode ser uma referência mais confiável.`,
 
     // ---- cobertura da leitura continua ----
+    erroLeituraInterrompida: 'A leitura foi interrompida antes de terminar. Nada se perde: ela continua de onde parou na próxima atualização (automática, a cada 10 minutos) ou quando você clicar em "Buscar movimentos novos".',
     coberturaIniciando: 'Iniciando a leitura contínua deste token. Os totais vão sendo preenchidos conforme o histórico é lido (a cada 10 minutos).',
     coberturaCompletaEth: (ha) => `Leitura contínua: estão incluídas todas as transferências deste token nos últimos 15 dias. Atualizado a cada 10 minutos (última sincronização: ${ha}).`,
     coberturaParcial: (desde) => `Sincronizando o histórico: já temos todas as transferências desde ${desde}. Períodos que começam antes disso ainda estão incompletos e aparecem marcados abaixo.`,
@@ -319,6 +322,8 @@ const textos = {
     tipoCompraDex: 'DEX buy',
     tipoVendaDex: 'DEX sell',
     tipoTrocaDex: 'DEX swap',
+    tipoIdaVolta: 'DEX round trip',
+    movIdaVolta: '{a} sent tokens to the pool and got the same amount back in the same transaction: no buy or sell happened',
     tipoSaque: 'Exchange withdrawal',
     tipoDeposito: 'Exchange deposit',
     tipoMovQueima: 'Burn',
@@ -445,6 +450,7 @@ const textos = {
     avisoLiquidezBaixaTexto: (v) => `This token's trading pool currently has only ${v} in liquidity. With so little money available, a single large trade can badly distort the "quoted price" — and every dollar value on this page is calculated from that price. Treat the figures below with extra caution; if this page has an "On exchanges" section, it may be a more reliable reference.`,
 
     // ---- continuous reading coverage ----
+    erroLeituraInterrompida: 'The read was interrupted before finishing. Nothing is lost: it resumes where it stopped on the next update (automatic, every 10 minutes) or when you click "Fetch new movements".',
     coberturaIniciando: 'Starting continuous reading for this token. Totals fill in as the history is read (every 10 minutes).',
     coberturaCompletaEth: (ha) => `Continuous reading: every transfer of this token in the last 15 days is included. Updated every 10 minutes (last sync: ${ha}).`,
     coberturaParcial: (desde) => `Syncing history: we already have every transfer since ${desde}. Periods that start before that are still incomplete and are marked below.`,
