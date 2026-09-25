@@ -23,60 +23,66 @@ async function rpc(metodo, params) {
 }
 
 export const TAMANHO_PAGINA_SOL = 100;
-// Cada pagina custa cerca de 100 creditos da Helius (plano gratuito: 1 milhao/mes).
-export const CREDITOS_POR_PAGINA_SOL = 100;
+// Ate 24/09/2026 a Helius so tinha o endpoint antigo (Enhanced Transactions,
+// 100 creditos por chamada). Nesse dia ela lancou o Parsed Events, com a
+// mesma informacao por 10 creditos -- 10x mais barato. E o que usamos agora.
+export const CREDITOS_POR_PAGINA_SOL = 10;
 
 /**
  * Uma pagina de transacoes que citam o endereco do token, da mais nova
  * para a mais antiga.
- *   antesDe: assinatura -- continua a partir dela (paginacao)
- *   desdeTs: segundos Unix -- nao traz nada mais antigo que isso
+ *   continuarDe: o "paginationToken" da resposta anterior, para continuar
+ *                de onde parou.
  *
  * LIMITE DA FONTE (documentado pela Helius): so voltam transacoes em que
  * o proprio endereco do token aparece. Transferencias simples entre
  * carteiras que nao citam o endereco do token podem ficar de fora.
  */
-export async function paginaSolana(mint, { antesDe = null, desdeTs = null } = {}) {
-  const params = new URLSearchParams({
-    'api-key': chave(),
-    limit: String(TAMANHO_PAGINA_SOL),
-    'sort-order': 'desc',
-  });
-  if (antesDe) params.set('before-signature', antesDe);
-  if (desdeTs) params.set('gte-time', String(Math.floor(desdeTs)));
+export async function paginaSolana(mint, { continuarDe = null } = {}) {
+  const corpo = { address: mint, limit: TAMANHO_PAGINA_SOL, sortOrder: 'desc' };
+  if (continuarDe) corpo.paginationToken = continuarDe;
 
-  const r = await fetch(`https://api.helius.xyz/v0/addresses/${mint}/transactions?${params}`, { cache: 'no-store' });
+  const r = await fetch(`https://mainnet.helius-rpc.com/v1/parsed-events/transaction-history?api-key=${chave()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo),
+  });
   if (!r.ok) throw new Error(`Helius respondeu ${r.status}`);
-  const lista = await r.json();
-  if (!Array.isArray(lista)) return { transacoes: 0, ultimaAssinatura: null, maisAntigaTs: null, transferencias: [] };
+  const j = await r.json();
+  const lista = Array.isArray(j?.data) ? j.data : [];
 
   const transferencias = [];
-  for (const tx of lista) {
-    for (const tt of tx.tokenTransfers || []) {
+  let maisAntigaTs = null;
+  for (const item of lista) {
+    const p = item?.parsed;
+    if (!p || item.parserStatus !== 'OK') continue;
+    if (maisAntigaTs === null || (p.blockTime && p.blockTime < maisAntigaTs)) maisAntigaTs = p.blockTime;
+    for (const tt of p.tokenTransfers || []) {
       if (tt.mint !== mint) continue;
-      const qtd = Number(tt.tokenAmount);
+      const casas = Number(tt.decimals) || 0;
+      const qtd = Number(tt.rawTokenAmount) / Math.pow(10, casas);
       if (!qtd || !isFinite(qtd)) continue;
       transferencias.push({
         chain: 'solana',
         token_address: mint,
-        tx_hash: tx.signature,
-        ts: new Date((tx.timestamp || 0) * 1000).toISOString(),
+        tx_hash: item.signature,
+        ts: new Date((p.blockTime || 0) * 1000).toISOString(),
         from_addr: tt.fromUserAccount || null,
         to_addr: tt.toUserAccount || null,
         amount: qtd,
-        // A Helius ja classifica o tipo da transacao (SWAP, TRANSFER...).
-        dica_tipo: tx.type || null,
+        // A Helius ja classifica o tipo da transacao (swap, transfer...).
+        // Maiusculo pra bater com o resto do codigo, que espera 'SWAP'.
+        dica_tipo: p.summary?.type ? String(p.summary.type).toUpperCase() : null,
         // Quem pagou a taxa costuma ser quem iniciou a operacao.
-        iniciador: tx.feePayer || null,
-        programas: (tx.instructions || []).map((i) => i.programId).filter(Boolean),
+        iniciador: p.feePayer || null,
+        programas: (p.instructions || []).map((i) => i.programId).filter(Boolean),
       });
     }
   }
-  const ultima = lista[lista.length - 1];
   return {
     transacoes: lista.length,
-    ultimaAssinatura: ultima?.signature || null,
-    maisAntigaTs: ultima?.timestamp || null,
+    proximoToken: j?.paginationToken || null,
+    maisAntigaTs,
     transferencias,
   };
 }
