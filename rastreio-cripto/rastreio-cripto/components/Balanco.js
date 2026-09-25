@@ -9,11 +9,11 @@ import { formatarDinheiro } from '@/lib/formato';
  * mais um grafico de barras por dia.
  * Todos os numeros ja vem calculados do servidor.
  */
-export default function Balanco({ locale, periodos, serieDiaria }) {
+export default function Balanco({ locale, periodos, serieDiaria, completos = {}, desdeTexto = null }) {
   const txt = t(locale);
   const [aba, setAba] = useState('24h');
 
-  const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '30d': txt.periodo30d };
+  const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '15d': txt.periodo15d };
   const b = periodos[aba];
 
   const maior = Math.max(
@@ -22,7 +22,7 @@ export default function Balanco({ locale, periodos, serieDiaria }) {
   );
 
   // O grafico acompanha a aba escolhida.
-  const dias = aba === '24h' ? 7 : aba === '7d' ? 7 : 30;
+  const dias = aba === '15d' ? 15 : 7;
   const serie = serieDiaria.slice(-dias);
 
   return (
@@ -31,7 +31,7 @@ export default function Balanco({ locale, periodos, serieDiaria }) {
       <p className="sub">{txt.periodoAjuda}</p>
 
       <div className="abas" role="tablist">
-        {['24h', '7d', '30d'].map((k) => (
+        {['24h', '7d', '15d'].map((k) => (
           <button
             key={k}
             className="aba"
@@ -43,6 +43,10 @@ export default function Balanco({ locale, periodos, serieDiaria }) {
           </button>
         ))}
       </div>
+
+      {completos[aba] === false && desdeTexto && (
+        <p className="periodo-incompleto">{txt.periodoIncompleto(desdeTexto)}</p>
+      )}
 
       <BalancaBarra locale={locale} balanco={b} />
 
@@ -70,7 +74,8 @@ export default function Balanco({ locale, periodos, serieDiaria }) {
 
 export function BalancaBarra({ locale, balanco }) {
   const txt = t(locale);
-  const temDados = balanco.compras + balanco.vendas > 0;
+  // Pelas quantidades de tokens: funciona mesmo quando o preco em dolar esta oculto.
+  const temDados = (balanco.comprasQtd ?? balanco.compras ?? 0) + (balanco.vendasQtd ?? balanco.vendas ?? 0) > 0;
 
   return (
     <div className="balanca">
