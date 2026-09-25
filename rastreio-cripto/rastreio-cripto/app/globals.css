@@ -662,3 +662,12 @@ ul.cex-lista { list-style: none; margin: 0; padding: 0; }
 }
 .raio-corretoras strong { display: block; margin-bottom: .3rem; }
 .raio-corretoras p { margin: 0; line-height: 1.5; }
+
+/* periodo ainda sem dados completos */
+.periodo-incompleto {
+  background: var(--atencao-bg);
+  border-left: 3px solid var(--atencao);
+  padding: .5rem .8rem;
+  margin: .75rem 0;
+  font-size: .85rem;
+}
