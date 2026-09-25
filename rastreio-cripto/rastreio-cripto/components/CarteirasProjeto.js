@@ -14,11 +14,13 @@ const ACOES = [
 /** Secao fixa: aparece sempre, mesmo quando o projeto nao fez nada. */
 export default function CarteirasProjeto({ locale, chain, resumo, motivosProjeto }) {
   const txt = t(locale);
-  const { periodos, ultimo, nCarteiras } = resumo;
+  const { periodos, qtd = {}, ultimo, nCarteiras } = resumo;
   const $ = (n) => (n > 0 ? formatarDinheiro(n, locale) : '—');
+  const houve = (p, k) => (qtd[p]?.[k] ?? periodos[p]?.[k] ?? 0) > 0;
 
-  // So mostramos as linhas que tiveram algum movimento em 30 dias.
-  const linhas = ACOES.filter(([k]) => periodos['30d'][k] > 0);
+  // So mostramos as linhas que tiveram algum movimento em 15 dias
+  // (pela quantidade de tokens: vale mesmo quando o preco esta oculto).
+  const linhas = ACOES.filter(([k]) => houve('15d', k));
 
   return (
     <section className="bloco">
@@ -37,7 +39,7 @@ export default function CarteirasProjeto({ locale, chain, resumo, motivosProjeto
                 <th />
                 <th>{txt.periodo24h}</th>
                 <th>{txt.periodo7d}</th>
-                <th>{txt.periodo30d}</th>
+                <th>{txt.periodo15d}</th>
               </tr>
             </thead>
             <tbody>
@@ -46,7 +48,7 @@ export default function CarteirasProjeto({ locale, chain, resumo, motivosProjeto
                   <th scope="row" className={cor}>{txt[rotulo]}</th>
                   <td>{$(periodos['24h'][k])}</td>
                   <td>{$(periodos['7d'][k])}</td>
-                  <td>{$(periodos['30d'][k])}</td>
+                  <td>{$(periodos['15d'][k])}</td>
                 </tr>
               ))}
             </tbody>
