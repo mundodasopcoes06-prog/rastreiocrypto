@@ -22,54 +22,41 @@ async function rpc(metodo, params) {
   return j.result;
 }
 
+export const TAMANHO_PAGINA_SOL = 100;
+// Cada pagina custa cerca de 100 creditos da Helius (plano gratuito: 1 milhao/mes).
+export const CREDITOS_POR_PAGINA_SOL = 100;
+
 /**
- * Ultimas transacoes que envolvem este token.
- * A Helius devolve a transacao ja traduzida, com quem mandou e quem recebeu.
+ * Uma pagina de transacoes que citam o endereco do token, da mais nova
+ * para a mais antiga.
+ *   antesDe: assinatura -- continua a partir dela (paginacao)
+ *   desdeTs: segundos Unix -- nao traz nada mais antigo que isso
  *
- * ATENCAO DE CUSTO: cada chamada aqui consome 100 creditos do plano gratuito
- * (1.000.000 por mes = cerca de 10.000 chamadas). Por isso o site so atualiza
- * os tokens que alguem olhou recentemente, e por isso o limite de paginas
- * abaixo e mais conservador que o do lado Ethereum.
- *
- * Mesmo motivo do lado Ethereum: sem rotina automatica, um token bem
- * negociado pode ter mais de 100 transacoes entre duas visitas. Viramos
- * pagina (parametro "before" da Helius) ate reencontrar a ultima leitura,
- * respeitando um teto de paginas para nao gastar credito demais numa
- * unica visita.
+ * LIMITE DA FONTE (documentado pela Helius): so voltam transacoes em que
+ * o proprio endereco do token aparece. Transferencias simples entre
+ * carteiras que nao citam o endereco do token podem ficar de fora.
  */
-export async function transferenciasSolana(mint, { desde = null, limite = null } = {}) {
-  const TAMANHO_PAGINA = 100; // maximo aceito pela Helius por chamada
-  const MAX_PAGINAS = 3; // ate 300 transacoes (300 creditos) por visita
+export async function paginaSolana(mint, { antesDe = null, desdeTs = null } = {}) {
+  const params = new URLSearchParams({
+    'api-key': chave(),
+    limit: String(TAMANHO_PAGINA_SOL),
+    'sort-order': 'desc',
+  });
+  if (antesDe) params.set('before-signature', antesDe);
+  if (desdeTs) params.set('gte-time', String(Math.floor(desdeTs)));
 
-  let brutas = [];
-  let antesDe = null;
-  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
-    const url = `https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${chave()}&limit=${TAMANHO_PAGINA}`
-      + (antesDe ? `&before=${antesDe}` : '');
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`Helius respondeu ${r.status}`);
-    const lista = await r.json();
-    if (!Array.isArray(lista) || !lista.length) break;
+  const r = await fetch(`https://api.helius.xyz/v0/addresses/${mint}/transactions?${params}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`Helius respondeu ${r.status}`);
+  const lista = await r.json();
+  if (!Array.isArray(lista)) return { transacoes: 0, ultimaAssinatura: null, maisAntigaTs: null, transferencias: [] };
 
-    brutas = brutas.concat(lista);
-    const ultima = lista[lista.length - 1];
-    const maisAntigaMs = (ultima.timestamp || 0) * 1000;
-
-    const alcancouDesde = desde && maisAntigaMs <= new Date(desde).getTime();
-    const alcancouLimite = limite && maisAntigaMs < limite;
-    if (alcancouDesde || alcancouLimite || lista.length < TAMANHO_PAGINA) break;
-
-    antesDe = ultima.signature;
-  }
-
-  const saida = [];
-  for (const tx of brutas) {
-    const transferencias = tx.tokenTransfers || [];
-    for (const tt of transferencias) {
+  const transferencias = [];
+  for (const tx of lista) {
+    for (const tt of tx.tokenTransfers || []) {
       if (tt.mint !== mint) continue;
       const qtd = Number(tt.tokenAmount);
       if (!qtd || !isFinite(qtd)) continue;
-      saida.push({
+      transferencias.push({
         chain: 'solana',
         token_address: mint,
         tx_hash: tx.signature,
@@ -85,7 +72,13 @@ export async function transferenciasSolana(mint, { desde = null, limite = null }
       });
     }
   }
-  return saida;
+  const ultima = lista[lista.length - 1];
+  return {
+    transacoes: lista.length,
+    ultimaAssinatura: ultima?.signature || null,
+    maisAntigaTs: ultima?.timestamp || null,
+    transferencias,
+  };
 }
 
 /**
