@@ -14,7 +14,12 @@ export function montarNarrativa({ locale, periodos, projeto, raio7d, liquidez })
 
   // 1) Manchete: o que aconteceu nas ultimas 24 horas
   let manchete;
-  if (b.nCompras + b.nVendas === 0) {
+  if (b.nCompras + b.nVendas > 0 && b.compras == null) {
+    // Preco nao confirmado: contamos negocios, sem inventar valor em dolar.
+    manchete = en
+      ? `In trading pools (DEX): ${b.nCompras} buys and ${b.nVendas} sells in the last 24 hours (dollar values hidden: price not confirmed).`
+      : `Nas pools de negociação (DEX): ${b.nCompras} compras e ${b.nVendas} vendas nas últimas 24 horas (valores em dólar ocultos: preço não confirmado).`;
+  } else if (b.nCompras + b.nVendas === 0) {
     manchete = en ? 'No buying or selling in trading pools (DEX) in the last 24 hours.' : 'Nenhuma compra ou venda nas pools de negociação (DEX) nas últimas 24 horas.';
   } else if (b.pctCompra > 58) {
     manchete = en
@@ -33,7 +38,7 @@ export function montarNarrativa({ locale, periodos, projeto, raio7d, liquidez })
   const frases = [];
 
   // 2) A semana
-  if (s.nCompras + s.nVendas > 0) {
+  if (s.nCompras + s.nVendas > 0 && s.liquido != null) {
     const liq = s.liquido;
     frases.push(en
       ? `Over 7 days the balance is ${liq >= 0 ? 'positive' : 'negative'} by ${$(Math.abs(liq))}.`
