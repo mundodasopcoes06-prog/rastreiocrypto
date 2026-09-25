@@ -18,6 +18,9 @@ function descrever(m, txt) {
     ? txt.localPoolDesconhecida
     : m.actor_label.replace(/^Pool\s+/i, '');
 
+  if (m.actor === 'dex' && m.actor_label === 'Ida e volta') {
+    return { tipo: txt.tipoIdaVolta, classe: 'neutro', modelo: txt.movIdaVolta, a: m.counterparty };
+  }
   if (m.actor === 'dex') {
     if (m.kind === 'compra') return { tipo: txt.tipoCompraDex, classe: 'compra', modelo: txt.movCompraDex, a: m.counterparty, local: nomeLocal };
     if (m.kind === 'venda') return { tipo: txt.tipoVendaDex, classe: 'venda', modelo: txt.movVendaDex, a: m.counterparty, local: nomeLocal };
