@@ -36,9 +36,11 @@ export async function GET(request) {
   const feitos = [];
   for (const t of tokens || []) {
     const restante = fim - Date.now();
-    if (restante < 12000) break; // o resto fica para a proxima rodada, na frente da fila
+    // So comeca um token se der tempo de ler E gravar antes do limite da Vercel;
+    // o resto fica para a proxima rodada, na frente da fila.
+    if (restante < 20000) break;
     try {
-      const r = await coletar(t.chain, t.address, { prazoMs: Math.min(30000, restante - 2000) });
+      const r = await coletar(t.chain, t.address, { prazoMs: Math.min(20000, restante - 12000) });
       feitos.push({ token: t.symbol || t.address, novos: r.novos, completo: r.cobertura_completa });
     } catch (e) {
       feitos.push({ token: t.symbol || t.address, erro: e.message });
