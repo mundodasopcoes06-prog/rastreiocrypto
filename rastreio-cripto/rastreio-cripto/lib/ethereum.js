@@ -10,7 +10,7 @@ function chave() {
   return k;
 }
 
-async function chamar(params) {
+async function chamar(params, tentativa = 1) {
   const url = new URL(BASE);
   url.searchParams.set('chainid', String(CHAIN_ID));
   url.searchParams.set('apikey', chave());
@@ -23,6 +23,12 @@ async function chamar(params) {
   // status "0" com "No transactions found" nao e erro: e token sem movimento.
   if (j.status === '0' && typeof j.result === 'string') {
     if (/no transactions found|no records found/i.test(j.result)) return [];
+    // Duas leituras ao mesmo tempo podem passar do limite de 5 por segundo:
+    // espera e tenta de novo, em vez de perder a leitura.
+    if (/rate limit/i.test(j.result) && tentativa <= 3) {
+      await new Promise((res) => setTimeout(res, 1100 * tentativa));
+      return chamar(params, tentativa + 1);
+    }
     throw new Error(`Etherscan: ${j.result}`);
   }
   return j.result;
@@ -33,57 +39,52 @@ export function respirar(ms = 260) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
+/** Numero do bloco mais proximo de um horario (segundos Unix). */
+export async function blocoPorTempo(tsSegundos) {
+  const r = await chamar({
+    module: 'block',
+    action: 'getblocknobytime',
+    timestamp: Math.floor(tsSegundos),
+    closest: 'after',
+  });
+  const n = Number(r);
+  if (!Number.isFinite(n)) throw new Error('Etherscan nao devolveu o bloco para o horario pedido.');
+  return n;
+}
+
+export const TAMANHO_PAGINA_ETH = 1000;
+// A Etherscan so entrega ate 10.000 registros por consulta (pagina x tamanho).
+export const MAX_PAGINAS_ETH = 10;
+
 /**
- * Ultimas transferencias de um token ERC-20.
- * Devolve ja no formato padrao que o resto do site entende.
- *
- * O site so le a blockchain quando alguem abre a pagina (sem rotina
- * automatica). Para um token bem negociado, isso significa que, entre
- * duas visitas, podem ter acontecido MAIS de 200 transferencias -- e
- * pegar so as 200 mais recentes deixaria um buraco silencioso no meio
- * do periodo, fazendo o balanco de 24h parecer bem menor do que e de
- * verdade. Por isso viramos paginas pra tras ate reencontrar a ultima
- * leitura (parametro "desde"), ate um limite de seguranca por visita.
+ * Uma pagina de transferencias do token dentro de uma faixa de blocos.
+ * ordem: 'asc' (do mais antigo para o mais novo) ou 'desc'.
+ * Ler por faixa de blocos e o que permite pegar TODAS as transferencias,
+ * sem o teto de 10.000 registros de uma consulta unica.
  */
-export async function transferenciasEthereum(contrato, { desde = null, limite = null } = {}) {
-  const TAMANHO_PAGINA = 1000; // maximo aceito pela Etherscan por pagina
-  const MAX_PAGINAS = 5; // ate 5.000 registros numa unica visita
-
-  let tudo = [];
-  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
-    const bruto = await chamar({
-      module: 'account',
-      action: 'tokentx',
-      contractaddress: contrato,
-      page: pagina,
-      offset: TAMANHO_PAGINA,
-      sort: 'desc',
-    });
-    if (!Array.isArray(bruto) || !bruto.length) break;
-    tudo = tudo.concat(bruto);
-
-    const maisAntigoMs = Number(bruto[bruto.length - 1].timeStamp) * 1000;
-    // Para de virar pagina quando: ja alcancou a ultima leitura anterior,
-    // ja passou dos 31 dias que guardamos, ou a pagina veio incompleta
-    // (significa que acabou o historico do contrato).
-    const alcancouDesde = desde && maisAntigoMs <= new Date(desde).getTime();
-    const alcancouLimite = limite && maisAntigoMs < limite;
-    if (alcancouDesde || alcancouLimite || bruto.length < TAMANHO_PAGINA) break;
-
-    await respirar();
-  }
-
-  return tudo.map((t) => {
+export async function paginaTransferencias(contrato, { inicio, fim, ordem, pagina }) {
+  const bruto = await chamar({
+    module: 'account',
+    action: 'tokentx',
+    contractaddress: contrato,
+    startblock: inicio,
+    endblock: fim,
+    page: pagina,
+    offset: TAMANHO_PAGINA_ETH,
+    sort: ordem,
+  });
+  if (!Array.isArray(bruto)) return [];
+  return bruto.map((t) => {
     const casas = parseInt(t.tokenDecimal || '18', 10);
-    const qtd = Number(t.value) / Math.pow(10, casas);
     return {
       chain: 'ethereum',
       token_address: contrato.toLowerCase(),
       tx_hash: t.hash,
+      bloco: Number(t.blockNumber),
       ts: new Date(Number(t.timeStamp) * 1000).toISOString(),
       from_addr: (t.from || '').toLowerCase(),
       to_addr: (t.to || '').toLowerCase(),
-      amount: qtd,
+      amount: Number(t.value) / Math.pow(10, casas),
       simbolo: t.tokenSymbol,
       nome: t.tokenName,
       decimals: casas,
