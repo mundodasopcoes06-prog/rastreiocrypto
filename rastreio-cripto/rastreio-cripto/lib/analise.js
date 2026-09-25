@@ -531,7 +531,7 @@ export function idadeEmDias(token) {
 // Cada item devolve { codigo, nivel, fato, valores }
 // nivel: 'alto' | 'medio' | 'info'
 // ------------------------------------------------------------
-export function gerarAlertas({ token, transferencias, carteirasProjeto, conhecidos, liquidez, donos, fuso }) {
+export function gerarAlertas({ token, transferencias, carteirasProjeto, conhecidos, liquidez, donos, fuso, corretoras24h = null }) {
   const alertas = [];
   const ultimas24h = transferencias.filter((t) => dentroDe(t.ts, 24));
 
@@ -580,8 +580,13 @@ export function gerarAlertas({ token, transferencias, carteirasProjeto, conhecid
   }
 
   // Fluxo para corretoras nas ultimas 24h
-  const paraCorretora = ultimas24h.filter((t) => t.actor === 'corretora' && t.kind === 'venda').reduce((s, t) => s + valor(t), 0);
-  const deCorretora = ultimas24h.filter((t) => t.actor === 'corretora' && t.kind === 'compra').reduce((s, t) => s + valor(t), 0);
+  // Com leitura continua, usa os totais completos de 24h (todas as transacoes).
+  const paraCorretora = corretoras24h
+    ? corretoras24h.vendas || 0
+    : ultimas24h.filter((t) => t.actor === 'corretora' && t.kind === 'venda').reduce((s, t) => s + valor(t), 0);
+  const deCorretora = corretoras24h
+    ? corretoras24h.compras || 0
+    : ultimas24h.filter((t) => t.actor === 'corretora' && t.kind === 'compra').reduce((s, t) => s + valor(t), 0);
   if (paraCorretora > LIMITE_BALEIA_USD && paraCorretora > deCorretora * 1.5) {
     alertas.push({ codigo: 'saida_para_corretora', nivel: 'medio', fato: false, valores: { qtd: usdTxt(paraCorretora) } });
   }
@@ -698,4 +703,130 @@ export function termometro(alertas) {
   if (altos >= 2 || pontos >= 8) nivel = 'alto';
   else if (altos >= 1 || pontos >= 4) nivel = 'medio';
   return { nivel, altos, medios };
+}
+
+// ============================================================
+// TOTAIS COMPLETOS (leitura continua)
+// Cada movimento gravado soma em uma ou mais categorias. Os numeros de
+// 24h, 7 dias e 15 dias saem da soma dessas categorias -- ou seja, de
+// TODAS as transacoes lidas, nao de uma amostra.
+// ============================================================
+export const PERIODOS = { '24h': 24, '7d': 168, '15d': 360 };
+const QUEM_DEX = ['projeto', 'grande', 'demais'];
+
+/** Em quais totais um movimento ja classificado entra. */
+export function categoriasDoMovimento(t, carteirasProjeto) {
+  const cats = [];
+  const doProjeto = (a) => !!a && carteirasProjeto.has(a);
+
+  if (t.actor === 'dex') {
+    if (t.kind === 'compra' || t.kind === 'venda') {
+      const quem = doProjeto(t.counterparty) ? 'projeto' : eGrande(t) ? 'grande' : 'demais';
+      cats.push(`dex_${t.kind}_${quem}`);
+    } else {
+      cats.push('dex_troca'); // passou por DEX, mas nao deu para saber a direcao
+    }
+  } else if (t.actor === 'corretora') {
+    cats.push(t.kind === 'compra' ? 'cex_saque' : 'cex_deposito');
+  } else if (t.actor === 'queima') {
+    cats.push('queima');
+  } else {
+    cats.push('transferencia');
+  }
+
+  // O que as carteiras do projeto fizeram (mesmas acoes do quadro do projeto).
+  const saiu = doProjeto(t.from_addr);
+  const entrou = doProjeto(t.to_addr);
+  if (saiu !== entrou) {
+    let acao;
+    if (saiu) {
+      if (t.actor === 'queima') acao = 'queimaram';
+      else if (t.actor === 'dex' && t.kind === 'venda') acao = 'venderam';
+      else if (t.actor === 'corretora') acao = 'paraCorretora';
+      else acao = 'transferiram';
+    } else {
+      if (t.actor === 'dex' && t.kind === 'compra') acao = 'compraram';
+      else if (t.actor === 'corretora') acao = 'deCorretora';
+      else acao = 'receberam';
+    }
+    cats.push(`proj_${acao}`);
+  }
+  return cats;
+}
+
+/**
+ * Transforma as linhas de ler_agregados em tudo que a pagina precisa.
+ * Os valores em dolar usam o preco validado ATUAL; sem preco validado,
+ * ficam null (a pagina mostra "—"), mas as contagens e proporcoes
+ * continuam certas porque sao calculadas pelas quantidades de tokens.
+ */
+export function lerTotais(linhas, preco) {
+  const mapa = {};
+  for (const l of linhas || []) {
+    (mapa[l.chave] ||= {})[l.categoria] = { qtd: Number(l.qtd) || 0, n: Number(l.n) || 0 };
+  }
+  const usd = (q) => (preco ? q * preco : null);
+  const get = (ch, cat) => mapa[ch]?.[cat] || { qtd: 0, n: 0 };
+  const soma = (ch, cats) =>
+    cats.reduce((a, c) => { const v = get(ch, c); return { qtd: a.qtd + v.qtd, n: a.n + v.n }; }, { qtd: 0, n: 0 });
+  const par = (c, v) => ({
+    compras: usd(c.qtd), vendas: usd(v.qtd), comprasQtd: c.qtd, vendasQtd: v.qtd, nCompras: c.n, nVendas: v.n,
+  });
+
+  const periodos = {}, raio = {}, projeto = {}, projetoQtd = {}, contagens = {};
+  for (const ch of Object.keys(PERIODOS)) {
+    const c = soma(ch, QUEM_DEX.map((q) => `dex_compra_${q}`));
+    const v = soma(ch, QUEM_DEX.map((q) => `dex_venda_${q}`));
+    const total = c.qtd + v.qtd;
+    periodos[ch] = {
+      ...par(c, v),
+      liquido: preco ? (c.qtd - v.qtd) * preco : null,
+      pctCompra: total > 0 ? (c.qtd / total) * 100 : 50,
+      pctVenda: total > 0 ? (v.qtd / total) * 100 : 50,
+    };
+    raio[ch] = {
+      corretoras: par(get(ch, 'cex_saque'), get(ch, 'cex_deposito')),
+      projeto: par(get(ch, 'dex_compra_projeto'), get(ch, 'dex_venda_projeto')),
+      grandes: par(get(ch, 'dex_compra_grande'), get(ch, 'dex_venda_grande')),
+      demais: par(get(ch, 'dex_compra_demais'), get(ch, 'dex_venda_demais')),
+    };
+    const acoes = ['venderam', 'paraCorretora', 'transferiram', 'queimaram', 'compraram', 'deCorretora', 'receberam'];
+    projeto[ch] = { n: 0 };
+    projetoQtd[ch] = {};
+    for (const a of acoes) {
+      const x = get(ch, `proj_${a}`);
+      projeto[ch][a] = usd(x.qtd);
+      projetoQtd[ch][a] = x.qtd;
+      projeto[ch].n += x.n;
+    }
+    contagens[ch] = {
+      transferencias: get(ch, 'transferencia'),
+      trocasSemDirecao: get(ch, 'dex_troca'),
+      queimas: get(ch, 'queima'),
+    };
+  }
+
+  // Serie por dia (15 dias), em quantidade de tokens: o grafico so compara alturas.
+  const serieDiaria = [];
+  const hoje = new Date();
+  for (let i = PERIODOS['15d'] / 24 - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate() - i));
+    const dia = d.toISOString().slice(0, 10);
+    const ch = `d:${dia}`;
+    serieDiaria.push({
+      dia,
+      compras: soma(ch, QUEM_DEX.map((q) => `dex_compra_${q}`)).qtd,
+      vendas: soma(ch, QUEM_DEX.map((q) => `dex_venda_${q}`)).qtd,
+    });
+  }
+
+  return { periodos, raio, projeto, projetoQtd, contagens, serieDiaria };
+}
+
+/** Uma janela (em horas) esta completa se os dados cobrem ela inteira e estao em dia. */
+export function janelaCompleta(token, horas) {
+  if (!token.cobertura_desde || !token.cobertura_ate) return false;
+  const agora = Date.now();
+  const emDia = agora - new Date(token.cobertura_ate).getTime() < 30 * 60000;
+  return emDia && new Date(token.cobertura_desde).getTime() <= agora - horas * 3600000 + 3600000;
 }
