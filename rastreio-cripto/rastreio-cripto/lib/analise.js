@@ -91,6 +91,24 @@ export function classificar(transferencia, { rotulos, carteirasProjeto, preco, s
     } else {
       kind = 'transferencia';
     }
+  } else if (
+    transferencia.dica_tipo === 'SWAP' && transferencia.iniciador &&
+    (from_addr === transferencia.iniciador || to_addr === transferencia.iniciador)
+  ) {
+    // A propria Helius decodificou a transacao como uma TROCA, mas a pool
+    // (ou o roteador) nao esta na nossa lista -- comum em AMMs menores que
+    // os agregadores usam no meio da rota. Quem iniciou a troca e o usuario:
+    // token saindo dele = venda; chegando nele = compra.
+    actor = 'dex';
+    actor_label = 'Pool de negociação';
+    confidence = 'indicio';
+    if (from_addr === transferencia.iniciador) {
+      kind = 'venda';
+      counterparty = from_addr;
+    } else {
+      kind = 'compra';
+      counterparty = to_addr;
+    }
   } else if (carteirasProjeto.has(from_addr) || carteirasProjeto.has(to_addr)) {
     actor = 'projeto';
     confidence = 'indicio';
@@ -829,4 +847,35 @@ export function janelaCompleta(token, horas) {
   const agora = Date.now();
   const emDia = agora - new Date(token.cobertura_ate).getTime() < 30 * 60000;
   return emDia && new Date(token.cobertura_desde).getTime() <= agora - horas * 3600000 + 3600000;
+}
+
+// ============================================================
+// IDA E VOLTA NA MESMA TRANSACAO (nao e compra nem venda)
+// Robos e roteadores de troca mandam tokens para a pool e recebem a mesma
+// quantidade de volta NA MESMA TRANSACAO (ex.: carteira que usa a Uniswap V4
+// para "emprestar" e devolver 510 mil ETHFI a cada 10 minutos; ou o JUP que
+// so passa pela carteira no meio de uma rota SOL -> USDC). Nenhum token
+// mudou de dono. Contar como compra + venda inflaria os totais em milhoes.
+// ============================================================
+const TOLERANCIA_IDA_VOLTA = 0.005; // 0,5% de diferenca: arredondamento/taxa
+
+export function anularIdaEVolta(classificadas) {
+  const grupos = new Map();
+  for (const t of classificadas) {
+    if (t.actor !== 'dex' || (t.kind !== 'compra' && t.kind !== 'venda') || !t.counterparty) continue;
+    const chave = `${t.tx_hash}|${t.counterparty}`;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(t);
+  }
+  const anular = new Set();
+  for (const lista of grupos.values()) {
+    const entrou = lista.filter((t) => t.kind === 'compra').reduce((s, t) => s + Number(t.amount), 0);
+    const saiu = lista.filter((t) => t.kind === 'venda').reduce((s, t) => s + Number(t.amount), 0);
+    if (entrou > 0 && saiu > 0 && Math.abs(entrou - saiu) <= TOLERANCIA_IDA_VOLTA * Math.max(entrou, saiu)) {
+      lista.forEach((t) => anular.add(t));
+    }
+  }
+  return classificadas.map((t) =>
+    anular.has(t) ? { ...t, kind: 'transferencia', actor: 'dex', actor_label: 'Ida e volta', confidence: 'confirmado' } : t
+  );
 }
