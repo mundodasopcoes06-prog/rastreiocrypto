@@ -12,17 +12,17 @@ const LINHAS = [
   ['demais', 'catDemais', 'catDemaisAjuda'],
 ];
 
-export default function RaioX({ locale, periodos }) {
+export default function RaioX({ locale, periodos, completos = {}, desdeTexto = null }) {
   const txt = t(locale);
   const [aba, setAba] = useState('7d');
   const r = periodos[aba];
-  const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '30d': txt.periodo30d };
+  const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '15d': txt.periodo15d };
   const vazio = LINHAS.every(([k]) => r[k].nCompras + r[k].nVendas === 0);
   const c = r.corretoras;
   const temCorretoras = c && c.nCompras + c.nVendas > 0;
 
-  // Maior valor da tabela: define o tamanho das barrinhas.
-  const maior = Math.max(1, ...LINHAS.flatMap(([k]) => [r[k].compras, r[k].vendas]));
+  // Maior quantidade da tabela: define o tamanho das barrinhas (vale mesmo sem preco).
+  const maior = Math.max(1e-12, ...LINHAS.flatMap(([k]) => [r[k].comprasQtd || 0, r[k].vendasQtd || 0]));
 
   return (
     <section className="bloco">
@@ -30,12 +30,16 @@ export default function RaioX({ locale, periodos }) {
       <p className="sub">{txt.raioSub}</p>
 
       <div className="abas" role="tablist">
-        {['24h', '7d', '30d'].map((k) => (
+        {['24h', '7d', '15d'].map((k) => (
           <button key={k} className="aba" role="tab" aria-selected={aba === k} onClick={() => setAba(k)}>
             {nomes[k]}
           </button>
         ))}
       </div>
+
+      {completos[aba] === false && desdeTexto && (
+        <p className="periodo-incompleto">{txt.periodoIncompleto(desdeTexto)}</p>
+      )}
 
       {vazio ? (
         <p className="estado-curto">{txt.raioVazio}</p>
@@ -53,7 +57,7 @@ export default function RaioX({ locale, periodos }) {
             <tbody>
               {LINHAS.map(([k, nome, ajuda]) => {
                 const l = r[k];
-                const saldo = l.compras - l.vendas;
+                const saldo = l.compras == null || l.vendas == null ? null : l.compras - l.vendas;
                 return (
                   <tr key={k}>
                     <th scope="row">
@@ -61,15 +65,15 @@ export default function RaioX({ locale, periodos }) {
                       <small>{txt[ajuda]}</small>
                     </th>
                     <td>
-                      <span className="barrinha entrada" style={{ width: `${(l.compras / maior) * 100}%` }} />
+                      <span className="barrinha entrada" style={{ width: `${((l.comprasQtd || 0) / maior) * 100}%` }} />
                       {formatarDinheiro(l.compras, locale)} <small>({l.nCompras})</small>
                     </td>
                     <td>
-                      <span className="barrinha saida" style={{ width: `${(l.vendas / maior) * 100}%` }} />
+                      <span className="barrinha saida" style={{ width: `${((l.vendasQtd || 0) / maior) * 100}%` }} />
                       {formatarDinheiro(l.vendas, locale)} <small>({l.nVendas})</small>
                     </td>
                     <td className={saldo > 0 ? 'entrada' : saldo < 0 ? 'saida' : ''}>
-                      {saldo > 0 ? '+' : saldo < 0 ? '−' : ''}{formatarDinheiro(Math.abs(saldo), locale)}
+                      {saldo == null ? '—' : <>{saldo > 0 ? '+' : saldo < 0 ? '−' : ''}{formatarDinheiro(Math.abs(saldo), locale)}</>}
                     </td>
                   </tr>
                 );
