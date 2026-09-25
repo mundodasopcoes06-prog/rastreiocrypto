@@ -1,14 +1,21 @@
 // ============================================================
 // COLETOR
 // Le a blockchain, classifica o que encontrou e grava no Supabase.
-// E chamado quando alguem abre a pagina de um token (sob demanda).
+// E chamado pela leitura continua (a cada 10 minutos, /api/indexar) e
+// tambem quando alguem abre a pagina de um token.
 // ============================================================
 
 import { db } from './supabase';
-import { transferenciasEthereum, criadorDoContrato, supplyEthereum } from './ethereum';
-import { transferenciasSolana, dadosDoMint, metadadosSolana } from './solana';
+import { criadorDoContrato, supplyEthereum } from './ethereum';
+import { dadosDoMint, metadadosSolana, CREDITOS_POR_PAGINA_SOL } from './solana';
 import { situacaoDoToken } from './precos';
-import { classificar, detectarCarteirasProjeto } from './analise';
+import { classificar, detectarCarteirasProjeto, categoriasDoMovimento } from './analise';
+import { lerMovimentosEthereum, lerMovimentosSolana, JANELA_MS } from './indexador';
+
+// Teto diario de creditos da Helius gasto na leitura continua da Solana.
+// O plano gratuito tem 1 milhao por mes; 15 mil por dia deixa folga para
+// o resto do site (dados do token, maiores donos).
+const LIMITE_DIARIO_HELIUS = 15000;
 import { maioresDonos } from './donos';
 import { lerCorretoras } from './cex';
 import { precoGeckoTerminal } from './geckoterminal';
@@ -63,7 +70,8 @@ export async function garantirToken(chain, address) {
  * Faz a leitura completa de um token.
  * Devolve quantos movimentos novos entraram.
  */
-export async function coletar(chain, address) {
+export async function coletar(chain, address, { prazoMs = 35000 } = {}) {
+  const prazo = Date.now() + prazoMs;
   const s = db();
   const addr = normalizarEndereco(chain, address);
   const token = await garantirToken(chain, addr);
@@ -124,28 +132,34 @@ export async function coletar(chain, address) {
     }
   }
 
-  // ---- 3. Movimentos ----
-  // "limite" e usado tanto para paginar pra tras (nao adianta buscar
-  // mais longe do que guardamos) quanto para filtrar o resultado final.
-  const limite = Date.now() - 31 * 86400000;
-  let brutas = [];
+  // ---- 3. Movimentos: continua de onde parou, sem buracos ----
+  const limite = Date.now() - JANELA_MS;
+  let leitura;
   if (chain === 'ethereum') {
-    brutas = await transferenciasEthereum(addr, { desde: token.last_ingest_at, limite });
-    if (brutas.length) {
-      casas = brutas[0].decimals ?? casas;
-      atualizacaoToken.decimals = casas;
-      if (!atualizacaoToken.symbol && brutas[0].simbolo) atualizacaoToken.symbol = brutas[0].simbolo;
-      if (!atualizacaoToken.name && brutas[0].nome) atualizacaoToken.name = brutas[0].nome;
-    }
     if (!token.total_supply) {
       const sup = await supplyEthereum(addr, casas);
       if (sup) atualizacaoToken.total_supply = sup;
     }
+    // Reserva ~10s no fim para classificar e gravar.
+    leitura = await lerMovimentosEthereum(addr, token, { prazo: prazo - 10000 });
+    const brutasEth = leitura.brutas;
+    if (brutasEth.length) {
+      casas = brutasEth[0].decimals ?? casas;
+      atualizacaoToken.decimals = casas;
+      if (!atualizacaoToken.symbol && brutasEth[0].simbolo) atualizacaoToken.symbol = brutasEth[0].simbolo;
+      if (!atualizacaoToken.name && brutasEth[0].nome) atualizacaoToken.name = brutasEth[0].nome;
+    }
   } else {
-    brutas = await transferenciasSolana(addr, { desde: token.last_ingest_at, limite });
+    const reservar = async () => {
+      const { data, error } = await s.rpc('reservar_creditos', {
+        p_provedor: 'helius', p_qtd: CREDITOS_POR_PAGINA_SOL, p_limite: LIMITE_DIARIO_HELIUS,
+      });
+      return !error && data === true;
+    };
+    leitura = await lerMovimentosSolana(addr, token, { prazo: prazo - 10000, reservar });
   }
-
-  brutas = brutas.filter((t) => new Date(t.ts).getTime() >= limite);
+  Object.assign(atualizacaoToken, leitura.cursores, { ultima_indexacao: new Date().toISOString() });
+  let brutas = leitura.brutas.filter((t) => new Date(t.ts).getTime() >= limite);
 
   // ---- 4. Pools de negociacao ----
   // Sem saber quais carteiras sao pools, nao da pra saber o que foi
@@ -207,6 +221,21 @@ export async function coletar(chain, address) {
 
   const tokenAtualizado = { ...token, ...atualizacaoToken };
   const carteirasProjetoMapa = detectarCarteirasProjeto(tokenAtualizado, brutas);
+  // Junta com as carteiras do projeto ja identificadas em leituras anteriores.
+  // Sem isso, uma leitura sem movimento do criador "esquecia" quem e do projeto.
+  const { data: carteirasSalvas } = await s
+    .from('project_wallets').select('address, reason').eq('chain', chain).eq('token_address', addr);
+  for (const c of carteirasSalvas || []) {
+    if (!carteirasProjetoMapa.has(c.address)) carteirasProjetoMapa.set(c.address, c.reason);
+  }
+  // Pool, corretora e endereco de queima NUNCA sao carteira do projeto, mesmo
+  // tendo recebido tokens do criador (e o que acontece quando o criador vende
+  // na pool ou deposita na corretora). Sem isso, a pool virava "carteira do
+  // projeto" e toda compra nela era contada como o projeto mandando tokens.
+  for (const endereco of [...carteirasProjetoMapa.keys()]) {
+    const r = rotulos.get(`${chain}:${endereco}`);
+    if (r && r.category !== 'projeto') carteirasProjetoMapa.delete(endereco);
+  }
   const carteirasProjeto = new Set(carteirasProjetoMapa.keys());
 
   const classificadas = brutas.map((t) =>
@@ -221,6 +250,9 @@ export async function coletar(chain, address) {
   );
 
   // ---- 6. Gravacao ----
+  // Cada movimento e gravado junto com as categorias em que entra; o banco
+  // soma nos totais na mesma operacao e ignora o que ja tinha sido gravado.
+  let novos = 0;
   if (classificadas.length) {
     const linhas = classificadas.map((t) => ({
       chain: t.chain,
@@ -237,17 +269,17 @@ export async function coletar(chain, address) {
       counterparty: t.counterparty || '',
       confidence: t.confidence,
       supply_pct: t.supply_pct,
+      categorias: categoriasDoMovimento(t, carteirasProjeto),
     }));
-
-    // Grava em blocos para nao estourar o tamanho da requisicao.
-    for (let i = 0; i < linhas.length; i += 100) {
-      const { error } = await s
-        .from('transfers')
-        .upsert(linhas.slice(i, i + 100), {
-          onConflict: 'chain,tx_hash,from_addr,to_addr,amount',
-          ignoreDuplicates: true,
-        });
-      if (error) console.warn('Erro ao gravar movimentos:', error.message);
+    for (let i = 0; i < linhas.length; i += 500) {
+      const { data, error } = await s.rpc('registrar_movimentos', { p: linhas.slice(i, i + 500) });
+      if (error) {
+        // Sem gravar, os cursores NAO podem avancar: senao ficaria um buraco.
+        console.error('Erro ao gravar movimentos:', error.message);
+        for (const k of Object.keys(leitura.cursores)) delete atualizacaoToken[k];
+        break;
+      }
+      novos += Number(data) || 0;
     }
   }
 
@@ -271,8 +303,12 @@ export async function coletar(chain, address) {
     atualizacaoToken.cex_data_at = new Date().toISOString();
   }
 
-  // Fotografia de preco e liquidez (so com valores validados)
-  if (situacao || gecko) {
+  // Fotografia de preco e liquidez (so com valores validados), no maximo a
+  // cada 25 minutos, para o grafico de liquidez nao crescer sem controle.
+  const fotoVelha =
+    !token.ultimo_snapshot_at || Date.now() - new Date(token.ultimo_snapshot_at).getTime() > 25 * 60000;
+  if ((situacao || gecko) && fotoVelha) {
+    atualizacaoToken.ultimo_snapshot_at = new Date().toISOString();
     await s.from('token_snapshots').insert({
       chain, token_address: addr,
       price_usd: validacao.preco,
@@ -297,11 +333,10 @@ export async function coletar(chain, address) {
   const { error: erroToken } = await s.from('tokens').update(atualizacaoToken).eq('chain', chain).eq('address', addr);
   if (erroToken) console.warn('Erro ao atualizar token:', erroToken.message);
 
-  // Apaga o que passou de 31 dias. Antes isso era feito pela rotina
-  // automatica, que foi removida; agora roda a cada leitura.
+  // Apaga o que passou do prazo (movimentos 7 dias; totais 16 dias).
   try { await s.rpc('limpar_antigos'); } catch (e) { /* nao pode travar a pagina */ }
 
-  return { lidos: brutas.length, token: { ...tokenAtualizado } };
+  return { lidos: brutas.length, novos, cobertura_completa: !!atualizacaoToken.cobertura_completa };
 }
 
 /** Le tudo que a pagina do token precisa mostrar. */
@@ -314,12 +349,26 @@ export async function lerToken(chain, address) {
 
   if (!token) return null;
 
-  const desde = new Date(Date.now() - 30 * 86400000).toISOString();
+  // Totais completos (24h, 7 dias, 15 dias e serie por dia): vem somados do
+  // banco, entao nao dependem do limite de 1.000 linhas por consulta.
+  // Movimentos um por um: os ate 5.000 mais recentes, para a lista e para os
+  // sinais de padrao (buscados em partes de 1.000, que e o teto por consulta).
+  const lerRecentes = async () => {
+    const todas = [];
+    for (let i = 0; i < 5000; i += 1000) {
+      const { data, error } = await s.from('transfers').select('*')
+        .eq('chain', chain).eq('token_address', addr)
+        .order('ts', { ascending: false }).range(i, i + 999);
+      if (error || !data?.length) break;
+      todas.push(...data);
+      if (data.length < 1000) break;
+    }
+    return todas;
+  };
 
-  const [{ data: transferencias }, { data: snapshots }, { data: carteiras }, rotulos] = await Promise.all([
-    s.from('transfers').select('*')
-      .eq('chain', chain).eq('token_address', addr).gte('ts', desde)
-      .order('ts', { ascending: false }).limit(2000),
+  const [transferencias, { data: agregados }, { data: snapshots }, { data: carteiras }, rotulos] = await Promise.all([
+    lerRecentes(),
+    s.rpc('ler_agregados', { p_chain: chain, p_token: addr }),
     s.from('token_snapshots').select('*')
       .eq('chain', chain).eq('token_address', addr)
       .order('ts', { ascending: false }).limit(200),
@@ -339,6 +388,12 @@ export async function lerToken(chain, address) {
       conhecidos.set(p.address, { label: nomePool(p.dex), category: 'dex' });
     }
   }
+
+  // Pool, corretora e queima nunca contam como carteira do projeto.
+  const carteirasValidas = (carteiras || []).filter((c) => {
+    const r = conhecidos.get(c.address);
+    return !r || r.category === 'projeto';
+  });
 
   // Valores em dolar sao recalculados AGORA, com o ultimo preco validado.
   // Assim, se um preco errado tiver sido gravado no passado, ele nao
@@ -360,9 +415,10 @@ export async function lerToken(chain, address) {
   return {
     token: { ...token, preco_atual: precoAtual },
     transferencias: recalculadas,
+    agregados: agregados || [],
     snapshots: snapshots || [],
-    carteirasProjeto: new Set((carteiras || []).map((c) => c.address)),
-    motivosProjeto: new Map((carteiras || []).map((c) => [c.address, c.reason])),
+    carteirasProjeto: new Set(carteirasValidas.map((c) => c.address)),
+    motivosProjeto: new Map(carteirasValidas.map((c) => [c.address, c.reason])),
     conhecidos,
   };
 }
