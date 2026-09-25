@@ -164,7 +164,15 @@ export async function lerMovimentosEthereum(addr, token, { prazo, api = {} }) {
 // cursor guardado, separado do topo.
 // ------------------------------------------------------------
 export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = {} }) {
-  const pagina = api.paginaSolana || paginaSolReal;
+  const paginaBruta = api.paginaSolana || paginaSolReal;
+  // Se a Helius falhar (ex.: 429 insistente), NAO derruba a leitura: guarda o
+  // que ja foi lido nesta rodada e para ali. Os cursores so avancam depois
+  // de uma pagina lida com sucesso, entao a proxima rodada continua do ponto
+  // exato, sem buraco.
+  let falhaHelius = null;
+  const pagina = async (a, opcoes) => {
+    try { return await paginaBruta(a, opcoes); } catch (e) { falhaHelius = e.message; return null; }
+  };
   const agora = api.agora ? api.agora() : Date.now();
   const tempoOk = () => (api.agora ? api.agora() : Date.now()) < prazo;
 
@@ -202,6 +210,7 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
     if (tempoOk() && (await reservar())) {
       paginasRestantes--;
       const pg0 = await pagina(addr, { continuarDe: null });
+      if (!pg0) return { brutas, semOrcamento, falhaHelius, cursores: {} }; // nada lido: nada muda
       anotar(pg0);
       for (const t of pg0.transferencias) {
         if (new Date(t.ts).getTime() >= fronteiraConhecida) brutas.push(t);
@@ -226,6 +235,7 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
     if (!(await reservar())) { semOrcamento = true; break; }
     paginasRestantes--;
     const pg = await pagina(addr, { continuarDe: cursorTopo });
+    if (!pg) break;
     anotar(pg);
     for (const t of pg.transferencias) {
       if (new Date(t.ts).getTime() >= fronteiraConhecida) brutas.push(t);
@@ -238,8 +248,13 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
     cursorTopo = pg.proximoToken;
   }
 
+  // A Solana marca o horario por SEGUNDO: outra transacao do mesmo segundo
+  // pode ser confirmada logo depois da nossa leitura. Por isso so declaramos
+  // "completo ate" o segundo ANTERIOR a transacao mais nova lida; o ultimo
+  // segundo e relido na proxima rodada (repetidos sao ignorados pelo banco).
+  const seguro = (t) => (t != null ? t - 1000 : t);
   if (fechouLacuna) {
-    ate = alvoTopo ?? agora;
+    ate = seguro(alvoTopo) ?? agora;
     cursorTopo = null;
     alvoTopo = null;
     if (desde == null) desde = Math.max(fronteiraConhecida, limiteMs);
@@ -251,7 +266,7 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
     // continua do MESMO ponto nas proximas rodadas (sem reler nada).
     // O segundo mais antigo pode ter vindo pela metade: so declaramos
     // completo a partir do segundo seguinte.
-    ate = alvoTopo;
+    ate = seguro(alvoTopo);
     desde = maisAntigaLidaMs + 1000;
     cursorHistorico = cursorTopo;
     cursorTopo = null;
@@ -273,6 +288,7 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
       if (!tempoOk()) break;
       if (!(await reservar())) { semOrcamento = true; break; }
       const pg = await pagina(addr, { continuarDe: cur });
+      if (!pg) break;
       for (const t of pg.transferencias) {
         if (new Date(t.ts).getTime() >= limiteMs) brutas.push(t);
       }
@@ -297,6 +313,7 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
   return {
     brutas,
     semOrcamento,
+    falhaHelius,
     cursores: {
       assinatura_base: cursorHistorico,
       cursor_topo_solana: cursorTopo,
