@@ -134,6 +134,13 @@ export async function lerMovimentosEthereum(addr, token, { prazo, api = {} }) {
 
 // ------------------------------------------------------------
 // SOLANA -- leitura continua dentro do orcamento de creditos
+//
+// A Parsed Events nao tem um filtro de data no servidor (so paginacao
+// por cursor opaco), entao cada rodada sempre comeca do topo e vai
+// paginando pra tras. Isso nao desperdica credito: e exatamente a
+// quantidade de dados novos desde a ultima vez, nem mais nem menos.
+// Para completar o historico dos 15 dias, a segunda parte retoma de um
+// cursor guardado, separado do topo.
 // ------------------------------------------------------------
 export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = {} }) {
   const pagina = api.paginaSolana || paginaSolReal;
@@ -143,60 +150,109 @@ export async function lerMovimentosSolana(addr, token, { prazo, reservar, api = 
   const limiteMs = agora - JANELA_MS;
   let desde = ms(token.cobertura_desde);
   let ate = ms(token.cobertura_ate);
-  let base = token.assinatura_base || null;
+  let cursorHistorico = token.assinatura_base || null;
+  let cursorTopo = token.cursor_topo_solana || null;
+  // O "alvo": ate onde essa corrida vai valer quando (e se) fechar a lacuna.
+  // So e estabelecido uma vez, na primeira pagina da corrida -- nunca muda
+  // no meio, senao uma rajada grande faria o alvo fugir pra sempre.
+  let alvoTopo = ms(token.topo_alvo_solana);
   let semOrcamento = false;
+  let fechouLacuna = false;
   const brutas = [];
 
-  // 1) Para frente: tudo desde a ultima leitura (1 minuto de folga; repetidos sao ignorados).
-  const inicioFrenteMs = ate ? Math.max(limiteMs, ate - 60000) : limiteMs;
-  let antes = null;
-  let esgotou = false;
-  let maisAntigaMs = null;
-  let ultimaAssinatura = null;
-  for (let p = 0; p < MAX_PAGINAS_SOL_POR_RODADA && tempoOk(); p++) {
-    if (!(await reservar())) { semOrcamento = true; break; }
-    const pg = await pagina(addr, { antesDe: antes, desdeTs: inicioFrenteMs / 1000 });
-    brutas.push(...pg.transferencias);
-    if (pg.maisAntigaTs) maisAntigaMs = pg.maisAntigaTs * 1000;
-    if (pg.ultimaAssinatura) ultimaAssinatura = pg.ultimaAssinatura;
-    if (pg.transacoes < TAMANHO_PAGINA_SOL) { esgotou = true; break; }
-    antes = pg.ultimaAssinatura;
-  }
+  // 1) Do topo para baixo, ate reencontrar o que ja foi lido da ultima vez.
+  // Se uma rodada anterior nao deu conta de fechar essa lacuna (rajada
+  // grande demais para uma rodada so), continuamos EXATAMENTE de onde
+  // paramos, sem nunca reler o topo de novo -- so quando a lacuna fechar
+  // de vez e que vale a pena descobrir "o topo" outra vez.
+  const fronteiraConhecida = ate ?? limiteMs;
+  let paginasRestantes = MAX_PAGINAS_SOL_POR_RODADA;
 
-  if (esgotou) {
-    if (ate == null || desde == null) desde = inicioFrenteMs; // primeira leitura cobriu tudo
-    ate = agora;
-  } else if (maisAntigaMs != null) {
-    // Nao deu para alcancar a leitura anterior: ficou um buraco.
-    // A cobertura continua passa a valer so a partir do que foi lido agora.
-    desde = maisAntigaMs;
-    base = ultimaAssinatura;
-    ate = agora;
-  }
-
-  // 2) Para tras: completa ate 15 dias atras.
-  if (esgotou && base && desde != null && desde > limiteMs + 60000) {
-    let antes2 = base;
-    for (let p = 0; p < MAX_PAGINAS_SOL_POR_RODADA && tempoOk(); p++) {
-      if (!(await reservar())) { semOrcamento = true; break; }
-      const pg = await pagina(addr, { antesDe: antes2, desdeTs: limiteMs / 1000 });
-      brutas.push(...pg.transferencias);
-      if (pg.maisAntigaTs) desde = Math.min(desde, pg.maisAntigaTs * 1000);
-      if (pg.ultimaAssinatura) base = pg.ultimaAssinatura;
-      if (pg.transacoes < TAMANHO_PAGINA_SOL) { desde = limiteMs; base = null; break; }
-      antes2 = pg.ultimaAssinatura;
+  if (cursorTopo == null) {
+    // Sem corrida em andamento: comeca uma nova, descobrindo o alvo agora.
+    if (tempoOk() && (await reservar())) {
+      paginasRestantes--;
+      const pg0 = await pagina(addr, { continuarDe: null });
+      for (const t of pg0.transferencias) {
+        if (new Date(t.ts).getTime() >= fronteiraConhecida) brutas.push(t);
+      }
+      alvoTopo = pg0.transferencias.length
+        ? Math.max(...pg0.transferencias.map((t) => new Date(t.ts).getTime()))
+        : agora;
+      const maisAntigaMs0 = pg0.maisAntigaTs != null ? pg0.maisAntigaTs * 1000 : null;
+      if (!pg0.proximoToken || pg0.transacoes < TAMANHO_PAGINA_SOL || (maisAntigaMs0 != null && maisAntigaMs0 <= fronteiraConhecida)) {
+        fechouLacuna = true;
+      } else {
+        cursorTopo = pg0.proximoToken;
+      }
+    } else {
+      semOrcamento = true;
     }
-  } else if (desde != null && desde <= limiteMs + 60000) {
-    base = null;
   }
 
-  const emDia = ate != null && agora - ate < 60000;
-  const completa = desde != null && desde <= limiteMs + 60000 && emDia;
+  // Continua fechando a lacuna em aberto, com o resto do orcamento da rodada.
+  while (!fechouLacuna && cursorTopo != null && paginasRestantes > 0) {
+    if (!tempoOk()) break;
+    if (!(await reservar())) { semOrcamento = true; break; }
+    paginasRestantes--;
+    const pg = await pagina(addr, { continuarDe: cursorTopo });
+    for (const t of pg.transferencias) {
+      if (new Date(t.ts).getTime() >= fronteiraConhecida) brutas.push(t);
+    }
+    const maisAntigaMs = pg.maisAntigaTs != null ? pg.maisAntigaTs * 1000 : null;
+    if (!pg.proximoToken || pg.transacoes < TAMANHO_PAGINA_SOL || (maisAntigaMs != null && maisAntigaMs <= fronteiraConhecida)) {
+      fechouLacuna = true;
+      break;
+    }
+    cursorTopo = pg.proximoToken;
+  }
+
+  if (fechouLacuna) {
+    ate = alvoTopo ?? agora;
+    cursorTopo = null;
+    alvoTopo = null;
+    if (desde == null) desde = Math.max(fronteiraConhecida, limiteMs);
+  }
+  // Se nao fechou, "ate" fica como estava -- os dados lidos ja foram
+  // gravados (brutas), mas so contam como "sem buraco ate agora" quando
+  // a lacuna realmente fechar. cursorTopo e alvoTopo ficam guardados
+  // pra proxima rodada continuar exatamente daqui.
+
+  // 2) Completa o historico ate 15 dias atras, retomando de onde parou.
+  if (desde != null && desde > limiteMs + 60000 && !semOrcamento) {
+    let cur = cursorHistorico;
+    for (let p = 0; p < paginasRestantes; p++) {
+      if (!tempoOk()) break;
+      if (!(await reservar())) { semOrcamento = true; break; }
+      const pg = await pagina(addr, { continuarDe: cur });
+      for (const t of pg.transferencias) {
+        if (new Date(t.ts).getTime() >= limiteMs) brutas.push(t);
+      }
+      const maisAntigaMs = pg.maisAntigaTs != null ? pg.maisAntigaTs * 1000 : null;
+      if (maisAntigaMs != null) desde = Math.min(desde, maisAntigaMs);
+      if (!pg.proximoToken || pg.transacoes < TAMANHO_PAGINA_SOL || (maisAntigaMs != null && maisAntigaMs <= limiteMs)) {
+        desde = limiteMs; cursorHistorico = null; break;
+      }
+      cur = pg.proximoToken;
+      cursorHistorico = cur;
+    }
+
+  } else if (desde != null && desde <= limiteMs + 60000) {
+    cursorHistorico = null;
+  }
+
+  // "Em dia" significa que a varredura do topo chegou ate a fronteira
+  // conhecida NESTA rodada -- nao que a ultima transacao seja recente
+  // (um token calmo pode ficar minutos sem nenhum movimento e continuar
+  // 100% em dia).
+  const completa = desde != null && desde <= limiteMs + 60000 && fechouLacuna;
   return {
     brutas,
     semOrcamento,
     cursores: {
-      assinatura_base: base,
+      assinatura_base: cursorHistorico,
+      cursor_topo_solana: cursorTopo,
+      topo_alvo_solana: alvoTopo != null ? new Date(alvoTopo).toISOString() : null,
       cobertura_desde: desde != null ? new Date(desde).toISOString() : null,
       cobertura_ate: ate != null ? new Date(ate).toISOString() : null,
       cobertura_completa: completa,
