@@ -9,10 +9,8 @@ import {
 import { montarNarrativa } from '@/lib/narrativa';
 import { formatarDinheiro, formatarNumero, formatarDataHora, encurtarEndereco, linkExplorador } from '@/lib/formato';
 import Alertas from '@/components/Alertas';
-import LinhaDoTempo from '@/components/LinhaDoTempo';
 import Atualizador from '@/components/Atualizador';
 import CarteirasProjeto from '@/components/CarteirasProjeto';
-import RaioX from '@/components/RaioX';
 import Liquidez from '@/components/Liquidez';
 import Donos from '@/components/Donos';
 import Corretoras from '@/components/Corretoras';
@@ -94,7 +92,6 @@ export default async function PaginaToken({ params }) {
   // Totais de 24h, 7 e 15 dias: soma de TODAS as transacoes lidas.
   const totais = lerTotais(dados?.agregados || [], token.preco_atual);
   const periodos = totais.periodos;
-  const serieDiaria = totais.serieDiaria;
   const raio = totais.raio;
   const movProjeto = movimentos.filter((m) => carteirasProjeto.has(m.from_addr) !== carteirasProjeto.has(m.to_addr));
   const projeto = {
@@ -200,8 +197,6 @@ export default async function PaginaToken({ params }) {
 
           <CarteirasProjeto locale={locale} chain={chain} resumo={projeto} motivosProjeto={motivosProjeto} />
 
-          <RaioX locale={locale} periodos={raio} completos={completos} desdeTexto={desdeTexto} />
-
           <Corretoras locale={locale} cex={token.cex_data} />
 
           <Liquidez locale={locale} liquidez={liquidez} />
@@ -251,13 +246,6 @@ export default async function PaginaToken({ params }) {
               )}
             </div>
           </section>
-
-          <LinhaDoTempo
-            locale={locale}
-            movimentos={movimentos.slice(0, 200)}
-            simbolo={token.symbol}
-            motivosProjeto={motivosProjeto}
-          />
         </>
       )}
 
