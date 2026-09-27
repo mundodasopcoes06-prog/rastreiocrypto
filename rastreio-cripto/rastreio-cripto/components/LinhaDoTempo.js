@@ -62,7 +62,7 @@ function Frase({ modelo, chain, a, b, local }) {
 
 export default function LinhaDoTempo({ locale, movimentos, simbolo, motivosProjeto }) {
   const txt = t(locale);
-  const contexto = { motivosProjeto: motivosProjeto || new Map(), formatarUsd: (n) => formatarDinheiro(n, locale) };
+  const contexto = { motivosProjeto: motivosProjeto || new Map() };
 
   return (
     <section className="bloco">
