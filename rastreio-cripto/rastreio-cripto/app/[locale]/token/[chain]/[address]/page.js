@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { IDIOMAS, t } from '@/lib/dicionario';
 import { lerToken, registrarVisita } from '@/lib/coletor';
 import {
-  gerarAlertas, termometro, resumoProjeto, raioX,
+  gerarAlertas, termometro, lerTotais, janelaCompleta, PERIODOS,
   analisarLiquidez, analisarDonos, idadeEmDias, fusoDoIdioma, LIMITE_LIQUIDEZ_CONFIAVEL_USD,
 } from '@/lib/analise';
 import { montarNarrativa } from '@/lib/narrativa';
@@ -17,6 +17,7 @@ import Liquidez from '@/components/Liquidez';
 import Donos from '@/components/Donos';
 import Corretoras from '@/components/Corretoras';
 import AvisoPreco from '@/components/AvisoPreco';
+import AvisoCobertura from '@/components/AvisoCobertura';
 import Anuncio from '@/components/Anuncio';
 import { SITE_URL } from '@/lib/site';
 import { db } from '@/lib/supabase';
@@ -90,12 +91,25 @@ export default async function PaginaToken({ params }) {
   const ultimoSnapshot = snapshots[0] || null;
 
   // ---- Todos os calculos da pagina ----
-  const projeto = resumoProjeto(movimentos, carteirasProjeto);
-  const raio = {
-    '24h': raioX(movimentos, 24, carteirasProjeto),
-    '7d': raioX(movimentos, 24 * 7, carteirasProjeto),
-    '15d': raioX(movimentos, 24 * 15, carteirasProjeto),
+  // Totais de 24h, 7 e 15 dias: soma de TODAS as transacoes lidas.
+  const totais = lerTotais(dados?.agregados || [], token.preco_atual);
+  const periodos = totais.periodos;
+  const serieDiaria = totais.serieDiaria;
+  const raio = totais.raio;
+  const movProjeto = movimentos.filter((m) => carteirasProjeto.has(m.from_addr) !== carteirasProjeto.has(m.to_addr));
+  const projeto = {
+    periodos: totais.projeto,
+    qtd: totais.projetoQtd,
+    ultimo: movProjeto[0]?.ts || null,
+    nCarteiras: carteirasProjeto.size,
   };
+  // Quais janelas ja estao completas (para marcar as que ainda nao estao).
+  const completos = Object.fromEntries(Object.entries(PERIODOS).map(([k, h]) => [k, janelaCompleta(token, h)]));
+  const desdeTexto = token.cobertura_desde ? formatarDataHora(token.cobertura_desde, locale) : null;
+  const semDados = movimentos.length === 0 && (dados?.agregados || []).length === 0;
+  const baseAlertas = movimentos.length
+    ? { n: movimentos.length, desde: formatarDataHora(movimentos[movimentos.length - 1].ts, locale) }
+    : null;
   const liquidez = analisarLiquidez(snapshots);
   const donos = analisarDonos(token, conhecidos, carteirasProjeto);
   const idade = idadeEmDias(token);
@@ -103,6 +117,7 @@ export default async function PaginaToken({ params }) {
   const alertas = gerarAlertas({
     token, transferencias: movimentos, carteirasProjeto, conhecidos,
     liquidez, donos, fuso: fusoDoIdioma(locale),
+    corretoras24h: token.preco_atual ? raio['24h'].corretoras : null,
   });
   const termo = termometro(alertas);
   const { manchete, paragrafo } = montarNarrativa({ locale, termo, projeto, liquidez });
@@ -133,10 +148,7 @@ export default async function PaginaToken({ params }) {
             )}
           </div>
         </div>
-        <div style={{ display:'flex', gap:'0.75rem' }}>
-          <Link href={`/${locale}/bitcoin`} className="idioma">{txt.navBitcoin}</Link>
-          <Link href={`/${locale}`} className="idioma">{txt.voltar}</Link>
-        </div>
+        <Link href={`/${locale}`} className="idioma">{txt.voltar}</Link>
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>
@@ -145,11 +157,11 @@ export default async function PaginaToken({ params }) {
           chain={chain}
           address={address}
           ultimaLeitura={token.last_ingest_at || null}
-          vazio={movimentos.length === 0}
+          vazio={semDados}
         />
       </div>
 
-      {movimentos.length === 0 ? (
+      {semDados ? (
         <div className="estado">{txt.coletando}</div>
       ) : (
         <>
@@ -164,6 +176,7 @@ export default async function PaginaToken({ params }) {
           })()}
 
           <AvisoPreco locale={locale} token={token} />
+          <AvisoCobertura locale={locale} token={token} />
 
           <section className={`veredicto nivel-${termo.nivel}`}>
             <div className="termometro" aria-label={`${txt.termometroTitulo}: ${nomesNivel[termo.nivel]}`}>
@@ -183,11 +196,11 @@ export default async function PaginaToken({ params }) {
             {paragrafo && <p className="narrativa">{paragrafo}</p>}
           </section>
 
-          <Alertas locale={locale} alertas={alertas} chain={chain} />
+          <Alertas locale={locale} alertas={alertas} chain={chain} base={baseAlertas} />
 
           <CarteirasProjeto locale={locale} chain={chain} resumo={projeto} motivosProjeto={motivosProjeto} />
 
-          <RaioX locale={locale} periodos={raio} />
+          <RaioX locale={locale} periodos={raio} completos={completos} desdeTexto={desdeTexto} />
 
           <Corretoras locale={locale} cex={token.cex_data} />
 
