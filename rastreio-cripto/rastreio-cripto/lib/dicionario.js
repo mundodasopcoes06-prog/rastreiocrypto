@@ -625,6 +625,10 @@ const alertas = {
       titulo: 'Poucas carteiras sem identificação guardam muito',
       texto: 'Carteiras sem identificação entre as 10 maiores guardam {pct}% de todos os tokens. Se poucas delas venderem juntas, o preço pode desabar. Parte disso pode ser pool ou cofre do projeto que não conhecemos.',
     },
+    acumulo_silencioso: {
+      titulo: 'Acúmulo silencioso: carteira só comprando',
+      texto: 'Uma carteira comprou {compras} vezes nas pools (DEX) nos últimos 7 dias e não vendeu nenhuma vez (juntando {pct}% do total emitido). Encontramos {carteiras} carteira(s) assim. Pode ser acumulação planejada de quem acredita no token — ou preparação para um movimento maior.',
+    },
     liquidez_baixa_confianca: {
       titulo: 'Liquidez baixa demais para confiar no preço',
       texto: 'A liquidez atual é de apenas {liquidez}. Nesse patamar, um único negócio grande pode distorcer bastante o preço de referência, inflando ou reduzindo todos os valores em dólar desta página.',
@@ -698,6 +702,10 @@ const alertas = {
     donos_concentrados: {
       titulo: 'A few unidentified wallets hold a lot',
       texto: 'Unidentified wallets among the top 10 hold {pct}% of all tokens. If a few of them sell together, the price can crash. Part of this may be a pool or project treasury we do not know about.',
+    },
+    acumulo_silencioso: {
+      titulo: 'Silent accumulation: wallet only buying',
+      texto: 'One wallet bought {compras} times on DEX pools in the last 7 days and never sold (adding up to {pct}% of total supply). We found {carteiras} wallet(s) like this. It may be planned accumulation by a believer — or preparation for a bigger move.',
     },
     liquidez_baixa_confianca: {
       titulo: 'Liquidity too low to trust the price',

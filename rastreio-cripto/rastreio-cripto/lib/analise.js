@@ -389,6 +389,26 @@ export function detectarVaiEVolta(transferencias, conhecidos) {
   return { carteiras: suspeitas.length, endereco, compras: c.compras, vendas: c.vendas, usd: c.usd };
 }
 
+/** Acumulo silencioso: carteira que so COMPRA (varias vezes) e nao vende. */
+export function detectarAcumulo(transferencias, conhecidos) {
+  const porCarteira = new Map();
+  for (const t of transferencias) {
+    if (!eNegociacaoDex(t) || !dentroDe(t.ts, 168)) continue;
+    const a = t.counterparty;
+    if (!a || conhecidos.has(a)) continue;
+    if (!porCarteira.has(a)) porCarteira.set(a, { compras: 0, vendas: 0, pct: 0 });
+    const c = porCarteira.get(a);
+    if (t.kind === 'compra') { c.compras++; c.pct += Number(t.supply_pct) || 0; }
+    else c.vendas++;
+  }
+  const suspeitas = [...porCarteira.entries()]
+    .filter(([, c]) => c.compras >= 5 && c.vendas === 0)
+    .sort((a, b) => b[1].compras - a[1].compras);
+  if (!suspeitas.length) return null;
+  const [endereco, c] = suspeitas[0];
+  return { carteiras: suspeitas.length, endereco, compras: c.compras, pct: c.pct };
+}
+
 // ------------------------------------------------------------
 // 4) Carteiras irmas: varias carteiras abastecidas pela mesma origem
 //    (so enxergamos abastecimento feito com o proprio token)
@@ -657,6 +677,15 @@ export function gerarAlertas({ token, transferencias, carteirasProjeto, conhecid
   }
 
   // Carteiras irmas
+  const acumulo = detectarAcumulo(transferencias, conhecidos);
+  if (acumulo) {
+    alertas.push({
+      codigo: 'acumulo_silencioso', nivel: 'info', fato: false,
+      valores: { compras: acumulo.compras, carteiras: acumulo.carteiras, pct: acumulo.pct ? acumulo.pct.toFixed(2) : '—' },
+      endereco: acumulo.endereco,
+    });
+  }
+
   const irmas = detectarCarteirasIrmas(transferencias, conhecidos, carteirasProjeto);
   if (irmas) {
     alertas.push({

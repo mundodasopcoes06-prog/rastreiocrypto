@@ -87,6 +87,8 @@ export async function coletarBitcoin() {
           const btc = (o.value || 0) / SATS;
           if (btc < CORTE_BTC) continue;
           const toAddr = o.scriptpubkey_address || null;
+          if (!toAddr) continue;                 // saida sem endereco (ex: OP_RETURN): ignora
+          if (toAddr === fromAddr) continue;     // troco voltando para a origem: nao e movimento
           const toLabel = toAddr ? rotulos.get(toAddr) || null : null;
 
           let categoria = 'transferencia_grande';
