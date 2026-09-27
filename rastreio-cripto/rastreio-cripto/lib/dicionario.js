@@ -208,7 +208,7 @@ const textos = {
     motivoPoolPadrao: 'pool deduzida pelo padrão da transação, não está na lista oficial',
     motivoDexPrograma: (dex) => `passou pelo programa ${dex}; a direção (compra ou venda) foi deduzida de quem pagou a taxa`,
     motivoProjeto: (r) => `carteira ligada ao projeto porque ${r}`,
-    motivoBaleia: (usd, pct) => `carteira sem nome público; chamamos de grande porque movimentou ${usd}${pct ? ` (${pct}% do total emitido)` : ''}`,
+    motivoBaleia: (pct) => `carteira sem nome público; chamamos de grande porque movimentou ${pct ? `${pct}% do total emitido` : 'uma fatia relevante do que circulou'}`,
     motivoDesconhecido: 'carteira sem nome público: não sabemos quem é',
     motivoTransferencia: 'passagem direta entre carteiras; não foi compra nem venda na bolsa',
     fuso: 'horário de Brasília',
@@ -475,7 +475,7 @@ const textos = {
     motivoPoolPadrao: 'pool inferred from the transaction pattern, not on the official list',
     motivoDexPrograma: (dex) => `went through the ${dex} program; direction (buy or sell) inferred from who paid the fee`,
     motivoProjeto: (r) => `wallet linked to the project because it ${r}`,
-    motivoBaleia: (usd, pct) => `wallet with no public name; we call it large because it moved ${usd}${pct ? ` (${pct}% of total supply)` : ''}`,
+    motivoBaleia: (pct) => `wallet with no public name; we call it large because it moved ${pct ? `${pct}% of total supply` : 'a relevant share of what circulated'}`,
     motivoDesconhecido: 'wallet with no public name: we do not know who it is',
     motivoTransferencia: 'direct transfer between wallets; not a buy or sell on an exchange',
     fuso: 'UTC',
@@ -763,7 +763,7 @@ export function textoAlerta(locale, codigo, valores = {}) {
 }
 
 /** Motivo curto de um movimento individual, para mostrar ao lado do selo. */
-export function motivoMovimento(locale, m, { motivosProjeto, formatarUsd }) {
+export function motivoMovimento(locale, m, { motivosProjeto }) {
   const txt = t(locale);
   if (m.confidence === 'confirmado') return null;
   if (m.actor === 'dex') {
@@ -777,7 +777,7 @@ export function motivoMovimento(locale, m, { motivosProjeto, formatarUsd }) {
   }
   if (m.actor === 'baleia') {
     const pct = m.supply_pct ? Number(m.supply_pct).toFixed(2) : null;
-    return txt.motivoBaleia(formatarUsd(Number(m.usd_value)), pct);
+    return txt.motivoBaleia(pct);
   }
   if (m.kind === 'transferencia') return txt.motivoTransferencia;
   return txt.motivoDesconhecido;
