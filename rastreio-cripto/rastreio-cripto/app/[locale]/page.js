@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { IDIOMAS, t } from '@/lib/dicionario';
 import { SITE_URL } from '@/lib/site';
 import Busca from '@/components/Busca';
@@ -39,6 +40,9 @@ export default function Home({ params }) {
         <h1>{txt.buscaTitulo}</h1>
         <p className="frase">{txt.buscaAjuda}</p>
         <Busca locale={locale} />
+        <p style={{ marginTop: '1rem' }}>
+          <Link href={`/${locale}/bitcoin`} className="idioma">{txt.verBitcoin}</Link>
+        </p>
       </section>
 
       <section className="bloco" style={{ marginBottom: '4rem' }}>
