@@ -1,119 +1,65 @@
 // ============================================================
-// NARRATIVA
-// Transforma os numeros ja calculados num paragrafo em linguagem simples.
-// Nao calcula nada novo: so conta a historia do que a pagina mostra.
+// NARRATIVA (versao "rastreio")
+// Conta em uma frase o que os SINAIS dizem. Nao usa preco nem
+// compra/venda em dolar. Recebe tudo ja calculado.
 // ============================================================
 
-import { formatarDinheiro } from './formato';
-
-export function montarNarrativa({ locale, periodos, projeto, raio7d, liquidez }) {
+export function montarNarrativa({ locale, termo, projeto, liquidez }) {
   const en = locale === 'en';
-  const $ = (n) => formatarDinheiro(n, locale);
-  const b = periodos['24h'];
-  const s = periodos['7d'];
 
-  // 1) Manchete: o que aconteceu nas ultimas 24 horas
   let manchete;
-  if (b.nCompras + b.nVendas > 0 && b.compras == null) {
-    // Preco nao confirmado: contamos negocios, sem inventar valor em dolar.
+  if (termo.nivel === 'alto') {
     manchete = en
-      ? `In trading pools (DEX): ${b.nCompras} buys and ${b.nVendas} sells in the last 24 hours (dollar values hidden: price not confirmed).`
-      : `Nas pools de negociação (DEX): ${b.nCompras} compras e ${b.nVendas} vendas nas últimas 24 horas (valores em dólar ocultos: preço não confirmado).`;
-  } else if (b.nCompras + b.nVendas === 0) {
-    manchete = en ? 'No buying or selling in trading pools (DEX) in the last 24 hours.' : 'Nenhuma compra ou venda nas pools de negociação (DEX) nas últimas 24 horas.';
-  } else if (b.pctCompra > 58) {
+      ? 'This token raises several attention signals — read them below before deciding anything.'
+      : 'Este token acende vários sinais de atenção — leia-os abaixo antes de decidir qualquer coisa.';
+  } else if (termo.nivel === 'medio') {
     manchete = en
-      ? `In trading pools (DEX), more buying than selling: ${$(b.compras)} bought against ${$(b.vendas)} sold in the last 24 hours.`
-      : `Nas pools de negociação (DEX), mais compra que venda: ${$(b.compras)} em compras contra ${$(b.vendas)} em vendas nas últimas 24 horas.`;
-  } else if (b.pctVenda > 58) {
-    manchete = en
-      ? `In trading pools (DEX), more selling than buying: ${$(b.vendas)} sold against ${$(b.compras)} bought in the last 24 hours.`
-      : `Nas pools de negociação (DEX), mais venda que compra: ${$(b.vendas)} em vendas contra ${$(b.compras)} em compras nas últimas 24 horas.`;
+      ? 'This token raises some attention signals worth checking below.'
+      : 'Este token acende alguns sinais de atenção que vale conferir abaixo.';
   } else {
     manchete = en
-      ? `In trading pools (DEX), buying and selling are balanced: ${$(b.compras)} bought and ${$(b.vendas)} sold in the last 24 hours.`
-      : `Nas pools de negociação (DEX), compra e venda equilibradas: ${$(b.compras)} em compras e ${$(b.vendas)} em vendas nas últimas 24 horas.`;
+      ? 'We found no strong manipulation signals in the window we can read.'
+      : 'Não encontramos sinais fortes de manipulação na janela que conseguimos ler.';
   }
 
   const frases = [];
 
-  // 2) A semana
-  if (s.nCompras + s.nVendas > 0 && s.liquido != null) {
-    const liq = s.liquido;
-    frases.push(en
-      ? `Over 7 days the balance is ${liq >= 0 ? 'positive' : 'negative'} by ${$(Math.abs(liq))}.`
-      : `Na semana, o saldo está ${liq >= 0 ? 'positivo' : 'negativo'} em ${$(Math.abs(liq))}.`);
-  }
-
-  // 3) Carteiras do projeto
-  const p = projeto.periodos['7d'];
-  if (projeto.nCarteiras === 0) {
+  // Atividade das carteiras do projeto (em % do total emitido)
+  const p = projeto?.periodos?.['7d'];
+  if (projeto?.nCarteiras === 0) {
     frases.push(en ? 'We could not identify the project\'s wallets.' : 'Não identificamos as carteiras do projeto.');
-  } else if (p.n === 0) {
-    frases.push(en ? 'Project wallets did not move tokens this week.' : 'As carteiras do projeto não movimentaram tokens nesta semana.');
-  } else {
-    const partes = [];
-    const add = (v, pt, ing) => { if (v > 0) partes.push(en ? `${ing} ${$(v)}` : `${pt} ${$(v)}`); };
-    add(p.venderam, 'venderam', 'sold');
-    add(p.paraCorretora, 'mandaram para corretoras', 'sent to exchanges');
-    add(p.transferiram, 'passaram para outras carteiras', 'passed to other wallets');
-    add(p.queimaram, 'queimaram', 'burned');
-    add(p.compraram, 'compraram', 'bought');
-    add(p.receberam + p.deCorretora, 'receberam', 'received');
-    if (partes.length) {
+  } else if (p && p.n > 0) {
+    const saiu = (p.venderam || 0) + (p.paraCorretora || 0) + (p.transferiram || 0) + (p.queimaram || 0);
+    const entrou = (p.compraram || 0) + (p.deCorretora || 0) + (p.receberam || 0);
+    const f = (v) => `${v < 0.01 ? '<0,01' : v.toFixed(2)}%`;
+    if (saiu > 0 && saiu >= entrou) {
       frases.push(en
-        ? `This week, project wallets ${juntar(partes, 'and')}.`
-        : `Nesta semana, as carteiras do projeto ${juntar(partes, 'e')}.`);
+        ? `This week the project wallets moved out about ${f(saiu)} of total supply.`
+        : `Nesta semana, as carteiras do projeto tiraram cerca de ${f(saiu)} do total emitido.`);
+    } else if (entrou > 0) {
+      frases.push(en
+        ? `This week the project wallets took in about ${f(entrou)} of total supply.`
+        : `Nesta semana, as carteiras do projeto receberam cerca de ${f(entrou)} do total emitido.`);
     }
   }
 
-  // 4) Corretoras (so cita o que teve valor)
-  const c = raio7d.corretoras;
-  if (c.compras > 0 && c.vendas > 0) {
-    frases.push(en
-      ? `At identified exchanges, withdrawals added up to ${$(c.compras)} and deposits to ${$(c.vendas)} this week.`
-      : `Nas corretoras identificadas, os saques somaram ${$(c.compras)} e os depósitos ${$(c.vendas)} na semana.`);
-  } else if (c.vendas > 0) {
-    frases.push(en
-      ? `${$(c.vendas)} was deposited into identified exchanges this week, with no withdrawals.`
-      : `Foram depositados ${$(c.vendas)} em corretoras identificadas na semana, sem saques.`);
-  } else if (c.compras > 0) {
-    frases.push(en
-      ? `${$(c.compras)} was withdrawn from identified exchanges this week, with no deposits.`
-      : `Foram sacados ${$(c.compras)} de corretoras identificadas na semana, sem depósitos.`);
-  }
-
-  // 5) Carteiras grandes sem nome
-  const g = raio7d.grandes;
-  if (g.compras > 0 || g.vendas > 0) {
-    const partes = [];
-    if (g.compras > 0) partes.push(en ? `bought ${$(g.compras)}` : `compraram ${$(g.compras)}`);
-    if (g.vendas > 0) partes.push(en ? `sold ${$(g.vendas)}` : `venderam ${$(g.vendas)}`);
-    frases.push(en
-      ? `Large unidentified wallets ${partes.join(' and ')}.`
-      : `Carteiras grandes sem identificação ${partes.join(' e ')}.`);
-  }
-
-  // 6) Liquidez
-  if (liquidez.tipo !== 'poucos') {
+  // Liquidez
+  if (liquidez && liquidez.tipo && liquidez.tipo !== 'poucos') {
     const v = Math.abs(liquidez.variacao).toFixed(0);
-    const agora = $(liquidez.ultimo);
     const mapa = en
-      ? { brusca: `Liquidity dropped ${v}% suddenly and is now ${agora}.`,
-          gradual: `Liquidity has been falling gradually (${v}%) and is now ${agora}.`,
-          subiu: `Liquidity grew ${v}% and is now ${agora}.`,
-          estavel: `Liquidity is stable at ${agora}.` }
-      : { brusca: `A liquidez caiu ${v}% de forma repentina e está em ${agora}.`,
-          gradual: `A liquidez vem caindo aos poucos (${v}%) e está em ${agora}.`,
-          subiu: `A liquidez subiu ${v}% e está em ${agora}.`,
-          estavel: `A liquidez está estável em ${agora}.` };
+      ? { brusca: `Liquidity dropped ${v}% suddenly.`, gradual: `Liquidity has been falling gradually (${v}%).`,
+          subiu: `Liquidity grew ${v}%.`, estavel: 'Liquidity is stable.' }
+      : { brusca: `A liquidez caiu ${v}% de forma repentina.`, gradual: `A liquidez vem caindo aos poucos (${v}%).`,
+          subiu: `A liquidez subiu ${v}%.`, estavel: 'A liquidez está estável.' };
     frases.push(mapa[liquidez.tipo]);
   }
 
-  return { manchete, paragrafo: frases.join(' ') };
-}
+  // Resumo dos sinais
+  if (termo.altos + termo.medios > 0) {
+    frases.push(en
+      ? `In total: ${termo.altos} high-level and ${termo.medios} medium-level signals.`
+      : `No total: ${termo.altos} sinal(is) de nível alto e ${termo.medios} de nível médio.`);
+  }
 
-function juntar(lista, e) {
-  if (lista.length <= 1) return lista.join('');
-  return `${lista.slice(0, -1).join(', ')} ${e} ${lista[lista.length - 1]}`;
+  return { manchete, paragrafo: frases.join(' ') };
 }
