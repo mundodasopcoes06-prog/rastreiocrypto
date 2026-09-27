@@ -1,0 +1,18 @@
+name: Atualizar Bitcoin
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar a rota de coleta do Bitcoin
+        run: |
+          echo "Chamando ${{ secrets.URL_DO_SITE }}/api/bitcoin"
+          codigo=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.URL_DO_SITE }}/api/bitcoin")
+          echo "Resposta HTTP: $codigo"
+          cat /tmp/resp.txt
+          test "$codigo" = "200"
