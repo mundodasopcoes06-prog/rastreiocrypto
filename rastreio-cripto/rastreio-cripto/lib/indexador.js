@@ -18,7 +18,7 @@ import {
 } from './ethereum';
 import { paginaSolana as paginaSolReal, TAMANHO_PAGINA_SOL } from './solana';
 
-export const JANELA_DIAS = 15;
+export const JANELA_DIAS = 3; // reduzido de 15 -> 3 para caber no plano gratuito (limpeza apaga transfers > 2 dias)
 export const JANELA_MS = JANELA_DIAS * 86400000;
 const BLOCO_INFINITO = 99999999; // formato usado na documentacao da Etherscan
 // Paginas da Helius por direcao em cada rodada (cada pagina = 100 transacoes, 10 creditos).
