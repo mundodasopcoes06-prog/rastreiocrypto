@@ -2,32 +2,36 @@
 
 import { useState } from 'react';
 import { t } from '@/lib/dicionario';
-import { formatarDinheiro } from '@/lib/formato';
 
-// Corretoras ficam FORA desta tabela: saque e deposito nao sao compra nem
-// venda. Elas aparecem num quadro proprio logo abaixo.
+// Raio-X sem dolar: mostra, por tipo de carteira, quanto ENTROU e quanto
+// SAIU medido em % do total emitido, com o numero de operacoes.
+// Corretora: "entradas" = saques; "saidas" = depositos.
 const LINHAS = [
+  ['corretoras', 'catProjeto'], // rotulos abaixo sao sobrescritos por chaves proprias
+];
+
+const CATS = [
   ['projeto', 'catProjeto', 'catProjetoAjuda'],
   ['grandes', 'catGrandes', 'catGrandesAjuda'],
   ['demais', 'catDemais', 'catDemaisAjuda'],
+  ['corretoras', 'cexTitulo', null],
 ];
 
-export default function RaioX({ locale, periodos, completos = {}, desdeTexto = null }) {
+export default function RaioX({ locale, periodos }) {
   const txt = t(locale);
   const [aba, setAba] = useState('7d');
   const r = periodos[aba];
   const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '15d': txt.periodo15d };
-  const vazio = LINHAS.every(([k]) => r[k].nCompras + r[k].nVendas === 0);
-  const c = r.corretoras;
-  const temCorretoras = c && c.nCompras + c.nVendas > 0;
 
-  // Maior quantidade da tabela: define o tamanho das barrinhas (vale mesmo sem preco).
-  const maior = Math.max(1e-12, ...LINHAS.flatMap(([k]) => [r[k].comprasQtd || 0, r[k].vendasQtd || 0]));
+  const vazio = CATS.every(([k]) => r[k].nEntram + r[k].nSaem === 0);
+  const fmtPct = (v) => (v > 0 ? `${v < 0.01 ? '<0,01' : v.toFixed(2)}%` : '—');
+  const maior = Math.max(0.0001, ...CATS.flatMap(([k]) => [r[k].entram, r[k].saem]));
 
   return (
     <section className="bloco">
       <h2>{txt.raioTitulo}</h2>
       <p className="sub">{txt.raioSub}</p>
+      <p className="ajuda">{txt.raioMedida}</p>
 
       <div className="abas" role="tablist">
         {['24h', '7d', '15d'].map((k) => (
@@ -37,10 +41,6 @@ export default function RaioX({ locale, periodos, completos = {}, desdeTexto = n
         ))}
       </div>
 
-      {completos[aba] === false && desdeTexto && (
-        <p className="periodo-incompleto">{txt.periodoIncompleto(desdeTexto)}</p>
-      )}
-
       {vazio ? (
         <p className="estado-curto">{txt.raioVazio}</p>
       ) : (
@@ -49,48 +49,33 @@ export default function RaioX({ locale, periodos, completos = {}, desdeTexto = n
             <thead>
               <tr>
                 <th>{txt.raioCategoria}</th>
-                <th>{txt.saldoCompras}</th>
-                <th>{txt.saldoVendas}</th>
-                <th>{txt.raioSaldo}</th>
+                <th>{txt.raioEntradas}</th>
+                <th>{txt.raioSaidas}</th>
               </tr>
             </thead>
             <tbody>
-              {LINHAS.map(([k, nome, ajuda]) => {
+              {CATS.map(([k, nome, ajuda]) => {
                 const l = r[k];
-                const saldo = l.compras == null || l.vendas == null ? null : l.compras - l.vendas;
+                if (l.nEntram + l.nSaem === 0) return null;
                 return (
                   <tr key={k}>
                     <th scope="row">
                       {txt[nome]}
-                      <small>{txt[ajuda]}</small>
+                      {ajuda && <small>{txt[ajuda]}</small>}
                     </th>
                     <td>
-                      <span className="barrinha entrada" style={{ width: `${((l.comprasQtd || 0) / maior) * 100}%` }} />
-                      {formatarDinheiro(l.compras, locale)} <small>({l.nCompras})</small>
+                      <span className="barrinha entrada" style={{ width: `${(l.entram / maior) * 100}%` }} />
+                      {fmtPct(l.entram)} <small>({l.nEntram})</small>
                     </td>
                     <td>
-                      <span className="barrinha saida" style={{ width: `${((l.vendasQtd || 0) / maior) * 100}%` }} />
-                      {formatarDinheiro(l.vendas, locale)} <small>({l.nVendas})</small>
-                    </td>
-                    <td className={saldo > 0 ? 'entrada' : saldo < 0 ? 'saida' : ''}>
-                      {saldo == null ? '—' : <>{saldo > 0 ? '+' : saldo < 0 ? '−' : ''}{formatarDinheiro(Math.abs(saldo), locale)}</>}
+                      <span className="barrinha saida" style={{ width: `${(l.saem / maior) * 100}%` }} />
+                      {fmtPct(l.saem)} <small>({l.nSaem})</small>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
-      )}
-      {temCorretoras && (
-        <div className="raio-corretoras">
-          <strong>{txt.raioCorretorasTitulo}</strong>
-          <p>
-            {txt.raioCorretorasTexto(
-              formatarDinheiro(c.compras, locale), c.nCompras,
-              formatarDinheiro(c.vendas, locale), c.nVendas
-            )}
-          </p>
         </div>
       )}
     </section>
