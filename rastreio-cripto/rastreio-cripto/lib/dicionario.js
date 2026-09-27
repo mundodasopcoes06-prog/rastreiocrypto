@@ -44,9 +44,34 @@ const textos = {
 
     periodo24h: '24 horas',
     periodo7d: '7 dias',
+    periodo30d: '30 dias',
     periodo15d: '15 dias',
+    raioEntradas: 'Entradas (compra/saque)',
+    raioSaidas: 'Saídas (venda/depósito)',
+    raioMedida: 'Medido em % do total emitido e número de operações — sem valor em dólar.',
+    navBitcoin: 'Bitcoin',
+    verBitcoin: 'Ver movimentos do Bitcoin →',
+    btcTitulo: 'Bitcoin: grandes movimentos',
+    btcSub: 'Só os movimentos grandes de BTC, em quantidade exata. Corretora identificada = fato; sem rótulo = carteira não identificada. Não é previsão de preço.',
+    btcFluxoTitulo: 'Saldo nas corretoras identificadas',
+    btcEntrada: 'Entrou em corretoras',
+    btcSaida: 'Saiu de corretoras',
+    btcLiquido: 'Saldo líquido',
+    btcLiquidoAjuda: 'Entrada em corretora costuma anteceder venda; saída costuma indicar guarda. É indício observado, não garantia de alta ou queda.',
+    btcMovimentosTitulo: 'Maiores movimentos recentes',
+    btcColHora: 'Quando',
+    btcColQtd: 'Quantidade',
+    btcColTipo: 'O que foi',
+    btcColDe: 'De',
+    btcColPara: 'Para',
+    btcCatEntrada: 'Entrou em corretora',
+    btcCatSaida: 'Saiu de corretora',
+    btcCatTransf: 'Transferência grande',
+    btcNaoId: 'carteira não identificada',
+    btcVazio: 'Nenhum movimento grande registrado ainda. A leitura roda periodicamente.',
+    btcAviso: 'O fluxo de corretoras é um indicador observado historicamente, não uma garantia de alta ou queda. Corretoras também movem fundos por custódia e rebalanceamento.',
     periodoTitulo: 'Balanço de compras e vendas nas pools (DEX)',
-    periodoAjuda: 'Só entram negociações de verdade, feitas em pools de negociação (DEX). Saques e depósitos em corretoras e transferências entre carteiras não são compra nem venda e aparecem separados. Soma de todas as negociações do período, lidas continuamente.',
+    periodoAjuda: 'Só entram negociações de verdade, feitas em pools de negociação (DEX). Saques e depósitos em corretoras e transferências entre carteiras não são compra nem venda e aparecem separados. Guardamos os últimos 30 dias.',
 
     alertasTitulo: 'Sinais de atenção',
     semAlertas: 'Nenhum sinal de atenção na janela analisada.',
@@ -67,8 +92,6 @@ const textos = {
     tipoCompraDex: 'Compra na DEX',
     tipoVendaDex: 'Venda na DEX',
     tipoTrocaDex: 'Troca na DEX',
-    tipoIdaVolta: 'Ida e volta na DEX',
-    movIdaVolta: '{a} mandou tokens para a pool e recebeu a mesma quantidade de volta na mesma transação: não houve compra nem venda',
     tipoSaque: 'Saque de corretora',
     tipoDeposito: 'Depósito em corretora',
     tipoMovQueima: 'Queima',
@@ -129,7 +152,7 @@ const textos = {
     projetoTitulo: 'O que as carteiras do projeto estão fazendo',
     projetoSub: 'Carteiras que criaram o contrato, controlam a emissão ou receberam tokens direto delas. A ligação com o projeto é deduzida (indício).',
     projetoNenhuma: 'Não conseguimos identificar carteiras do projeto neste token. Na Solana isso é comum quando o criador renunciou ao controle do contrato; na Ethereum, quando o criador nunca movimentou o token.',
-    projetoParado: 'Nenhuma movimentação das carteiras do projeto nos últimos 15 dias.',
+    projetoParado: 'Nenhuma movimentação das carteiras do projeto nos últimos 30 dias.',
     projetoQtd: (n) => `${n} ${n === 1 ? 'carteira identificada' : 'carteiras identificadas'}`,
     projetoUltimo: 'Último movimento',
     projetoVerCarteiras: 'Ver as carteiras',
@@ -193,17 +216,6 @@ const textos = {
     // ---- confiabilidade do preco (liquidez muito baixa) ----
     avisoLiquidezBaixaTitulo: 'Atenção: liquidez muito baixa neste token',
     avisoLiquidezBaixaTexto: (v) => `A pool de negociação deste token tem apenas ${v} de liquidez agora. Com tão pouco dinheiro disponível, uma única negociação grande pode distorcer bastante o "preço de tabela" — e todo valor em dólar nesta página é calculado a partir desse preço. Trate os valores abaixo com cautela extra; se houver uma seção "Nas corretoras" nesta página, ela pode ser uma referência mais confiável.`,
-
-    // ---- cobertura da leitura continua ----
-    erroLeituraInterrompida: 'A leitura foi interrompida antes de terminar. Nada se perde: ela continua de onde parou na próxima atualização (automática, a cada 10 minutos) ou quando você clicar em "Buscar movimentos novos".',
-    coberturaIniciando: 'Iniciando a leitura contínua deste token. Os totais vão sendo preenchidos conforme o histórico é lido (a cada 10 minutos).',
-    coberturaCompletaEth: (ha) => `Leitura contínua: estão incluídas todas as transferências deste token nos últimos 15 dias. Atualizado a cada 10 minutos (última sincronização: ${ha}).`,
-    coberturaParcial: (desde) => `Sincronizando o histórico: já temos todas as transferências desde ${desde}. Períodos que começam antes disso ainda estão incompletos e aparecem marcados abaixo.`,
-    coberturaAtrasada: (ha) => `A última sincronização foi ${ha}; os movimentos mais recentes ainda não entraram.`,
-    coberturaSolana: 'Na Solana, a fonte de dados (Helius) só entrega transações que citam o endereço do token: algumas transferências simples entre carteiras podem não aparecer. Tokens muito negociados também podem passar do limite diário do plano gratuito — nesse caso a cobertura aparece como incompleta.',
-    coberturaSolanaDesde: (desde) => `Leitura contínua desde ${desde}, dentro do limite acima.`,
-    periodoIncompleto: (desde) => `Período incompleto: os dados completos começam em ${desde}.`,
-    alertasBase: (n, desde) => `Os sinais de padrão abaixo analisam os ${n} movimentos mais recentes (desde ${desde}). Os totais de compra e venda usam todas as transações.`,
 
     // ---- validacao do preco (3 fontes) ----
     precoStatusTitulo: {
@@ -299,9 +311,34 @@ const textos = {
 
     periodo24h: '24 hours',
     periodo7d: '7 days',
+    periodo30d: '30 days',
     periodo15d: '15 days',
+    raioEntradas: 'Inflows (buy/withdrawal)',
+    raioSaidas: 'Outflows (sell/deposit)',
+    raioMedida: 'Measured in % of total supply and number of operations — no dollar value.',
+    navBitcoin: 'Bitcoin',
+    verBitcoin: 'See Bitcoin movements →',
+    btcTitulo: 'Bitcoin: large movements',
+    btcSub: 'Only large BTC movements, in exact quantity. Identified exchange = fact; no label = unidentified wallet. This is not a price prediction.',
+    btcFluxoTitulo: 'Net flow at identified exchanges',
+    btcEntrada: 'Into exchanges',
+    btcSaida: 'Out of exchanges',
+    btcLiquido: 'Net balance',
+    btcLiquidoAjuda: 'Moving into an exchange often precedes selling; moving out often means holding. This is an observed hint, not a guarantee of a rise or fall.',
+    btcMovimentosTitulo: 'Largest recent movements',
+    btcColHora: 'When',
+    btcColQtd: 'Amount',
+    btcColTipo: 'What it was',
+    btcColDe: 'From',
+    btcColPara: 'To',
+    btcCatEntrada: 'Into exchange',
+    btcCatSaida: 'Out of exchange',
+    btcCatTransf: 'Large transfer',
+    btcNaoId: 'unidentified wallet',
+    btcVazio: 'No large movements recorded yet. The reader runs periodically.',
+    btcAviso: 'Exchange flow is a historically observed indicator, not a guarantee of a rise or fall. Exchanges also move funds for custody and rebalancing.',
     periodoTitulo: 'Buying and selling balance in pools (DEX)',
-    periodoAjuda: 'Only real trades made in trading pools (DEX) count here. Exchange withdrawals and deposits, and transfers between wallets, are not buys or sells and are shown separately. Sum of every trade in the period, read continuously.',
+    periodoAjuda: 'Only real trades made in trading pools (DEX) count here. Exchange withdrawals and deposits, and transfers between wallets, are not buys or sells and are shown separately. We keep the last 30 days.',
 
     alertasTitulo: 'Things to watch',
     semAlertas: 'No warning signs in the analysed window.',
@@ -322,8 +359,6 @@ const textos = {
     tipoCompraDex: 'DEX buy',
     tipoVendaDex: 'DEX sell',
     tipoTrocaDex: 'DEX swap',
-    tipoIdaVolta: 'DEX round trip',
-    movIdaVolta: '{a} sent tokens to the pool and got the same amount back in the same transaction: no buy or sell happened',
     tipoSaque: 'Exchange withdrawal',
     tipoDeposito: 'Exchange deposit',
     tipoMovQueima: 'Burn',
@@ -384,7 +419,7 @@ const textos = {
     projetoTitulo: 'What the project wallets are doing',
     projetoSub: 'Wallets that created the contract, control minting, or received tokens directly from them. The link to the project is inferred (indication).',
     projetoNenhuma: 'We could not identify project wallets for this token. On Solana this is common when the creator renounced control; on Ethereum, when the creator never moved the token.',
-    projetoParado: 'No movement from project wallets in the last 15 days.',
+    projetoParado: 'No movement from project wallets in the last 30 days.',
     projetoQtd: (n) => `${n} ${n === 1 ? 'wallet identified' : 'wallets identified'}`,
     projetoUltimo: 'Last movement',
     projetoVerCarteiras: 'See the wallets',
@@ -448,17 +483,6 @@ const textos = {
     // ---- price reliability (very low liquidity) ----
     avisoLiquidezBaixaTitulo: 'Warning: very low liquidity for this token',
     avisoLiquidezBaixaTexto: (v) => `This token's trading pool currently has only ${v} in liquidity. With so little money available, a single large trade can badly distort the "quoted price" — and every dollar value on this page is calculated from that price. Treat the figures below with extra caution; if this page has an "On exchanges" section, it may be a more reliable reference.`,
-
-    // ---- continuous reading coverage ----
-    erroLeituraInterrompida: 'The read was interrupted before finishing. Nothing is lost: it resumes where it stopped on the next update (automatic, every 10 minutes) or when you click "Fetch new movements".',
-    coberturaIniciando: 'Starting continuous reading for this token. Totals fill in as the history is read (every 10 minutes).',
-    coberturaCompletaEth: (ha) => `Continuous reading: every transfer of this token in the last 15 days is included. Updated every 10 minutes (last sync: ${ha}).`,
-    coberturaParcial: (desde) => `Syncing history: we already have every transfer since ${desde}. Periods that start before that are still incomplete and are marked below.`,
-    coberturaAtrasada: (ha) => `The last sync was ${ha}; the most recent movements have not come in yet.`,
-    coberturaSolana: 'On Solana, the data source (Helius) only returns transactions that mention the token address: some plain wallet-to-wallet transfers may be missing. Very active tokens can also exceed the free plan daily limit — coverage then shows as incomplete.',
-    coberturaSolanaDesde: (desde) => `Continuous reading since ${desde}, within the limit above.`,
-    periodoIncompleto: (desde) => `Incomplete period: complete data starts on ${desde}.`,
-    alertasBase: (n, desde) => `The pattern signals below analyse the ${n} most recent movements (since ${desde}). Buy and sell totals use every transaction.`,
 
     // ---- price validation (3 sources) ----
     precoStatusTitulo: {
@@ -525,7 +549,7 @@ const alertas = {
   pt: {
     dev_vendendo: {
       titulo: 'Carteira ligada ao projeto enviando tokens para fora',
-      texto: 'Uma carteira que recebeu tokens logo no início da vida do projeto mandou {qtd} ({pct}% do total emitido) para {destino}. Historicamente isso aparece antes de vendas grandes, mas também pode ser pagamento, listagem ou distribuição combinada.',
+      texto: 'Uma carteira ligada ao projeto fez {n} envio(s) para fora nas últimas 24 horas; o maior representou {pct}% do total emitido, com destino a {destino}. Historicamente isso aparece antes de vendas grandes, mas também pode ser pagamento, listagem ou distribuição combinada.',
     },
     emissao_aberta: {
       titulo: 'O projeto ainda pode criar mais tokens',
@@ -536,12 +560,12 @@ const alertas = {
       texto: 'A autoridade de congelamento não foi renunciada: quem controla o contrato pode impedir que carteiras negociem. Fato lido do contrato.',
     },
     saida_para_corretora: {
-      titulo: 'Volume alto indo para corretoras',
-      texto: '{qtd} em tokens foi enviado para carteiras de corretoras identificadas nas últimas 24 horas. Depósito em corretora costuma anteceder venda, mas não é venda por si só.',
+      titulo: 'Movimento grande indo para corretoras',
+      texto: 'Registramos {n} movimento(s) grande(s) indo para carteiras de corretoras identificadas nas últimas 24 horas, somando {pct}% do total emitido. Depósito em corretora costuma anteceder venda, mas não é venda por si só.',
     },
     entrada_de_corretora: {
-      titulo: 'Volume alto saindo de corretoras',
-      texto: '{qtd} em tokens saiu de carteiras de corretoras identificadas nas últimas 24 horas. Normalmente indica gente retirando para guardar, o que reduz a oferta disponível para venda.',
+      titulo: 'Movimento grande saindo de corretoras',
+      texto: 'Registramos {n} movimento(s) grande(s) saindo de carteiras de corretoras identificadas nas últimas 24 horas, somando {pct}% do total emitido. Normalmente indica gente retirando para guardar, o que reduz a oferta disponível para venda.',
     },
     rajada_saida: {
       titulo: 'Rajada anormal de saídas em poucos minutos',
@@ -549,7 +573,7 @@ const alertas = {
     },
     concentracao: {
       titulo: 'Poucas carteiras movimentam quase tudo',
-      texto: 'As {n} maiores carteiras respondem por {pct}% de tudo que se moveu na janela. Quanto mais concentrado, mais o preço depende da decisão de poucas pessoas.',
+      texto: 'As {n} maiores carteiras respondem por {pct}% de toda a quantidade que se moveu na janela. Quanto mais concentrado, mais o preço depende da decisão de poucas pessoas.',
     },
     token_novo: {
       titulo: 'Token muito recente',
@@ -564,42 +588,42 @@ const alertas = {
       texto: 'A liquidez caiu {pct}% ao longo de {quedas} retiradas menores. Saída em pedaços chama menos atenção do que uma retirada única.',
     },
     valores_repetidos: {
-      titulo: 'Possível negociação artificial: a mesma quantia repetida',
-      texto: 'Nos últimos 7 dias, {n} compras e vendas nas pools (DEX) tiveram exatamente a mesma quantidade (cerca de {valor} cada), feitas por apenas {carteiras} carteira(s), num intervalo de {horas} hora(s). Isso representa {pct}% do volume da semana. Robôs de volume costumam fazer isso para o token parecer mais negociado do que é.',
+      titulo: 'Possível negociação artificial: a mesma quantidade repetida',
+      texto: 'Nos últimos 7 dias, {n} operações nas pools (DEX) tiveram exatamente a mesma quantidade de tokens, feitas por apenas {carteiras} carteira(s), num intervalo de {horas} hora(s). Isso representa {pct}% de toda a quantidade negociada na semana. Robôs de volume costumam fazer isso para o token parecer mais negociado do que é.',
     },
     vai_e_volta: {
       titulo: 'Possível negociação artificial: a mesma carteira compra e vende',
-      texto: 'Uma carteira comprou {compras} vezes e vendeu {vendas} vezes nas pools (DEX) nos últimos 7 dias, movimentando {qtd}. Encontramos {carteiras} carteira(s) com esse comportamento. Comprar e vender de si mesmo infla o volume sem mudar de dono — mas robôs de arbitragem legítimos também agem assim.',
+      texto: 'Uma carteira comprou {compras} vezes e vendeu {vendas} vezes nas pools (DEX) nos últimos 7 dias. Encontramos {carteiras} carteira(s) com esse comportamento. Comprar e vender de si mesmo infla o volume sem mudar de dono — mas robôs de arbitragem legítimos também agem assim.',
     },
     carteiras_irmas: {
       titulo: 'Carteiras abastecidas pela mesma origem',
-      texto: 'Uma mesma carteira transferiu tokens para {n} carteiras diferentes, e {venderam} delas já venderam nas pools (DEX) (cerca de {qtd}). Parecem investidores independentes, mas a origem comum sugere que podem ser a mesma pessoa ou grupo. Só enxergamos distribuição feita com o próprio token.',
+      texto: 'Uma mesma carteira transferiu tokens para {n} carteiras diferentes, e {venderam} delas já venderam nas pools (DEX). Parecem investidores independentes, mas a origem comum sugere que podem ser a mesma pessoa ou grupo. Só enxergamos distribuição feita com o próprio token.',
     },
     irmas_projeto: {
       titulo: 'Carteira do projeto abasteceu carteiras que estão vendendo',
-      texto: 'Uma carteira ligada ao projeto transferiu tokens para {n} carteiras, e {venderam} delas já venderam nas pools (DEX) (cerca de {qtd}). É um padrão comum de venda disfarçada: o projeto espalha tokens para vender por várias portas.',
+      texto: 'Uma carteira ligada ao projeto transferiu tokens para {n} carteiras, e {venderam} delas já venderam nas pools (DEX). É um padrão comum de venda disfarçada: o projeto espalha tokens para vender por várias portas.',
     },
     horario_venda: {
       titulo: 'Vendas sempre no mesmo horário',
-      texto: '{quem} vendeu nas pools (DEX) em {dias} dias diferentes, sempre por volta das {hora} ({fuso}), somando {qtd}. Repetição assim costuma indicar venda programada — alguém executando uma estratégia fixa todos os dias.',
+      texto: '{quem} vendeu nas pools (DEX) em {dias} dias diferentes, sempre por volta das {hora} ({fuso}). Repetição assim costuma indicar venda programada — alguém executando uma estratégia fixa todos os dias.',
     },
     horario_compra: {
       titulo: 'Compras sempre no mesmo horário',
-      texto: '{quem} comprou nas pools (DEX) em {dias} dias diferentes, sempre por volta das {hora} ({fuso}), somando {qtd}. Repetição assim costuma indicar compra programada — pode ser acumulação planejada ou robô.',
+      texto: '{quem} comprou nas pools (DEX) em {dias} dias diferentes, sempre por volta das {hora} ({fuso}). Repetição assim costuma indicar compra programada — pode ser acumulação planejada ou robô.',
     },
     donos_concentrados: {
       titulo: 'Poucas carteiras sem identificação guardam muito',
       texto: 'Carteiras sem identificação entre as 10 maiores guardam {pct}% de todos os tokens. Se poucas delas venderem juntas, o preço pode desabar. Parte disso pode ser pool ou cofre do projeto que não conhecemos.',
     },
     liquidez_baixa_confianca: {
-      titulo: 'Liquidez baixa demais para confiar no preço',
-      texto: 'A liquidez atual é de apenas {liquidez}. Nesse patamar, um único negócio grande pode distorcer bastante o preço de referência, inflando ou reduzindo todos os valores em dólar desta página.',
+      titulo: 'Liquidez baixa: preço fácil de manipular',
+      texto: 'A liquidez atual é de apenas {liquidez}. Nesse patamar, um único negócio grande consegue mover bastante o preço — terreno fértil para manipulação e para puxada de tapete.',
     },
   },
   en: {
     dev_vendendo: {
       titulo: 'Wallet linked to the project sending tokens out',
-      texto: 'A wallet that received tokens early in the project\'s life sent {qtd} ({pct}% of total supply) to {destino}. Historically this shows up before large sales, but it can also be payment, a listing, or an agreed distribution.',
+      texto: 'A wallet linked to the project made {n} outbound move(s) in the last 24 hours; the largest was {pct}% of total supply, sent to {destino}. Historically this shows up before large sales, but it can also be payment, a listing, or an agreed distribution.',
     },
     emissao_aberta: {
       titulo: 'The project can still create more tokens',
@@ -610,12 +634,12 @@ const alertas = {
       texto: 'The freeze authority has not been renounced: whoever controls the contract can stop wallets from trading. Fact read from the contract.',
     },
     saida_para_corretora: {
-      titulo: 'High volume moving into exchanges',
-      texto: '{qtd} worth of tokens was sent to identified exchange wallets in the last 24 hours. Depositing on an exchange often precedes selling, but it is not a sale by itself.',
+      titulo: 'Large movement into exchanges',
+      texto: 'We recorded {n} large move(s) into identified exchange wallets in the last 24 hours, totalling {pct}% of total supply. Depositing on an exchange often precedes selling, but it is not a sale by itself.',
     },
     entrada_de_corretora: {
-      titulo: 'High volume leaving exchanges',
-      texto: '{qtd} worth of tokens left identified exchange wallets in the last 24 hours. This usually means people withdrawing to hold, which reduces the supply available to sell.',
+      titulo: 'Large movement leaving exchanges',
+      texto: 'We recorded {n} large move(s) leaving identified exchange wallets in the last 24 hours, totalling {pct}% of total supply. This usually means people withdrawing to hold, which reduces the supply available to sell.',
     },
     rajada_saida: {
       titulo: 'Unusual burst of outflows within minutes',
@@ -623,7 +647,7 @@ const alertas = {
     },
     concentracao: {
       titulo: 'A few wallets move almost everything',
-      texto: 'The top {n} wallets account for {pct}% of everything that moved in the window. The more concentrated, the more the price depends on a few people\'s decisions.',
+      texto: 'The top {n} wallets account for {pct}% of all the quantity that moved in the window. The more concentrated, the more the price depends on a few people\'s decisions.',
     },
     token_novo: {
       titulo: 'Very recent token',
@@ -639,40 +663,39 @@ const alertas = {
     },
     valores_repetidos: {
       titulo: 'Possible fake trading: the same amount over and over',
-      texto: 'In the last 7 days, {n} buys and sells on DEX pools had exactly the same size (about {valor} each), made by only {carteiras} wallet(s), within {horas} hour(s). That is {pct}% of the week\'s volume. Volume bots do this to make a token look more traded than it is.',
+      texto: 'In the last 7 days, {n} trades on DEX pools had exactly the same token amount, made by only {carteiras} wallet(s), within {horas} hour(s). That is {pct}% of all the quantity traded this week. Volume bots do this to make a token look more traded than it is.',
     },
     vai_e_volta: {
       titulo: 'Possible fake trading: the same wallet buys and sells',
-      texto: 'One wallet bought {compras} times and sold {vendas} times on DEX pools in the last 7 days, moving {qtd}. We found {carteiras} wallet(s) behaving like this. Trading with yourself inflates volume without changing owners — though legitimate arbitrage bots also do this.',
+      texto: 'One wallet bought {compras} times and sold {vendas} times on DEX pools in the last 7 days. We found {carteiras} wallet(s) behaving like this. Trading with yourself inflates volume without changing owners — though legitimate arbitrage bots also do this.',
     },
     carteiras_irmas: {
       titulo: 'Wallets funded from the same source',
-      texto: 'A single wallet transferred tokens to {n} different wallets, and {venderam} of them have already sold on DEX pools (about {qtd}). They look like independent investors, but the common source suggests they may be the same person or group. We only see funding done with the token itself.',
+      texto: 'A single wallet transferred tokens to {n} different wallets, and {venderam} of them have already sold on DEX pools. They look like independent investors, but the common source suggests they may be the same person or group. We only see funding done with the token itself.',
     },
     irmas_projeto: {
       titulo: 'Project wallet funded wallets that are now selling',
-      texto: 'A wallet linked to the project transferred tokens to {n} wallets, and {venderam} of them have already sold on DEX pools (about {qtd}). This is a common disguised-selling pattern: spread tokens out, then sell through many doors.',
+      texto: 'A wallet linked to the project transferred tokens to {n} wallets, and {venderam} of them have already sold on DEX pools. This is a common disguised-selling pattern: spread tokens out, then sell through many doors.',
     },
     horario_venda: {
       titulo: 'Sales always at the same time',
-      texto: '{quem} sold on DEX pools on {dias} different days, always around {hora} ({fuso}), totalling {qtd}. This kind of repetition usually points to scheduled selling — someone running a fixed strategy every day.',
+      texto: '{quem} sold on DEX pools on {dias} different days, always around {hora} ({fuso}). This kind of repetition usually points to scheduled selling — someone running a fixed strategy every day.',
     },
     horario_compra: {
       titulo: 'Buys always at the same time',
-      texto: '{quem} bought on DEX pools on {dias} different days, always around {hora} ({fuso}), totalling {qtd}. This kind of repetition usually points to scheduled buying — planned accumulation or a bot.',
+      texto: '{quem} bought on DEX pools on {dias} different days, always around {hora} ({fuso}). This kind of repetition usually points to scheduled buying — planned accumulation or a bot.',
     },
     donos_concentrados: {
       titulo: 'A few unidentified wallets hold a lot',
       texto: 'Unidentified wallets among the top 10 hold {pct}% of all tokens. If a few of them sell together, the price can crash. Part of this may be a pool or project treasury we do not know about.',
     },
     liquidez_baixa_confianca: {
-      titulo: 'Liquidity too low to trust the price',
-      texto: 'Current liquidity is only {liquidez}. At this level, a single large trade can badly distort the reference price, inflating or shrinking every dollar figure on this page.',
+      titulo: 'Low liquidity: price easy to manipulate',
+      texto: 'Current liquidity is only {liquidez}. At this level, a single large trade can move the price a lot — fertile ground for manipulation and for a rug pull.',
     },
   },
 };
 
-// Por que cada alerta e INDICIO (e nao fato). Aparece ao lado do selo.
 const motivosAlerta = {
   pt: {
     dev_vendendo: 'a ligação da carteira com o projeto é deduzida: ela recebeu tokens de quem criou o contrato.',
