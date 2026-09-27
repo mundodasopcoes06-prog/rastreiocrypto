@@ -12,6 +12,7 @@ export default function BitcoinPainel({ locale, dados }) {
   const [aba, setAba] = useState('24h');
   const nomes = { '24h': txt.periodo24h, '7d': txt.periodo7d, '15d': txt.periodo15d };
   const f = dados.corretoras[aba];
+  const maiores = [...(dados.movimentos||[])].sort((a,b)=>Number(b.amount_btc)-Number(a.amount_btc)).slice(0,30);
   const btc = (n) => `${formatarNumero(n, locale)} BTC`;
 
   return (
@@ -39,7 +40,7 @@ export default function BitcoinPainel({ locale, dados }) {
 
       <section className="bloco">
         <h2>{txt.btcMovimentosTitulo}</h2>
-        {dados.movimentos.length === 0 ? (
+        {maiores.length === 0 ? (
           <p className="estado-curto">{txt.btcVazio}</p>
         ) : (
           <div className="rolagem">
@@ -54,7 +55,7 @@ export default function BitcoinPainel({ locale, dados }) {
                 </tr>
               </thead>
               <tbody>
-                {dados.movimentos.map((m) => (
+                {maiores.map((m) => (
                   <tr key={`${m.tx_hash}-${m.id}`}>
                     <td className="hora">{formatarDataHora(m.ts, locale)}</td>
                     <td><span className={`etiqueta-tipo ${m.categoria === 'saida_corretora' ? 'saque' : m.categoria === 'entrada_corretora' ? 'deposito' : 'neutro'}`}>{txt[CAT[m.categoria]]}</span></td>
