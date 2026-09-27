@@ -1,7 +1,6 @@
 import { t, motivoMovimento } from '@/lib/dicionario';
 import {
   formatarNumero,
-  formatarDinheiro,
   formatarDataHora,
   tempoRelativo,
   encurtarEndereco,
@@ -18,9 +17,6 @@ function descrever(m, txt) {
     ? txt.localPoolDesconhecida
     : m.actor_label.replace(/^Pool\s+/i, '');
 
-  if (m.actor === 'dex' && m.actor_label === 'Ida e volta') {
-    return { tipo: txt.tipoIdaVolta, classe: 'neutro', modelo: txt.movIdaVolta, a: m.counterparty };
-  }
   if (m.actor === 'dex') {
     if (m.kind === 'compra') return { tipo: txt.tipoCompraDex, classe: 'compra', modelo: txt.movCompraDex, a: m.counterparty, local: nomeLocal };
     if (m.kind === 'venda') return { tipo: txt.tipoVendaDex, classe: 'venda', modelo: txt.movVendaDex, a: m.counterparty, local: nomeLocal };
@@ -81,7 +77,6 @@ export default function LinhaDoTempo({ locale, movimentos, simbolo, motivosProje
               <th>{txt.colunaTipo}</th>
               <th>{txt.colunaQuem}</th>
               <th>{txt.colunaQuanto}</th>
-              <th>{txt.colunaValor}</th>
               <th>{txt.colunaSupply}</th>
               <th />
             </tr>
@@ -112,10 +107,6 @@ export default function LinhaDoTempo({ locale, movimentos, simbolo, motivosProje
 
                   <td className="num">
                     {formatarNumero(Number(m.amount), locale)} {simbolo || ''}
-                  </td>
-
-                  <td className="num">
-                    {formatarDinheiro(m.usd_value === null || m.usd_value === undefined ? null : Number(m.usd_value), locale)}
                   </td>
 
                   <td className="num">
