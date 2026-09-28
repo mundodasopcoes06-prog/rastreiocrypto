@@ -44,7 +44,12 @@ export default function RaizDoSite() {
             {txt.siteNome}
             <span>{txt.siteResumo}</span>
           </Link>
-          <Link href="/en" className="idioma">{txt.trocarIdioma}</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Link href="/pt/bitcoin" style={{ background: 'var(--entrada, #5fd0a8)', color: '#06231a', padding: '0.4rem 0.85rem', borderRadius: '8px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              ₿ {txt.navBitcoin}
+            </Link>
+            <Link href="/en" className="idioma">{txt.trocarIdioma}</Link>
+          </div>
         </div>
       </header>
 
