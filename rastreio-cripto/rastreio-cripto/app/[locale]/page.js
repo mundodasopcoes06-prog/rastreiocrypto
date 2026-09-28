@@ -41,7 +41,12 @@ export default function Home({ params }) {
         <p className="frase">{txt.buscaAjuda}</p>
         <Busca locale={locale} />
         <p style={{ marginTop: '1rem' }}>
-          <Link href={`/${locale}/bitcoin`} className="idioma">{txt.verBitcoin}</Link>
+          <Link
+            href={`/${locale}/bitcoin`}
+            style={{ display: 'inline-block', background: 'var(--entrada, #5fd0a8)', color: '#06231a', padding: '0.7rem 1.2rem', borderRadius: '10px', fontWeight: 700, textDecoration: 'none' }}
+          >
+            ₿ {txt.verBitcoin}
+          </Link>
         </p>
       </section>
 
